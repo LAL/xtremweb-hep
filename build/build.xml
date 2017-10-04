@@ -27,7 +27,12 @@
 <!--    build.xml - Ant build file for the XWHEP sources
         created Mon Mar 25 2002 by Samuel Heriard
  -->
-<project basedir=".." default="all" name="xwhep">
+<project 
+	basedir=".." 
+	default="all"
+	name="xwhep"
+	xmlns:jacoco="antlib:org.jacoco.ant"
+	xmlns:sonar="antlib:org.sonar.ant" >
   
 
   <!-- NAMES -->
@@ -36,11 +41,11 @@
   
    <!-- DIRECTORIES -->
   <property name="misc.dir" value="${basedir}/misc" />
-	  <property name="src.dir" value="${basedir}/src" />
-	  <property name="src.test.dir" value="${basedir}/test" />
-	  <property name="src.java.dir" value="${src.dir}/xtremweb" />
-	  <property name="src.java.test.dir" value="${src.test.dir}/xtremweb" />
-  <property name="src.c.dir" value="${src.dir}/natif" />
+  <property name="src.dir" value="${basedir}/src" />
+  <property name="src.test.dir" value="${src.dir}/test/" />
+  <property name="src.java.dir" value="${src.dir}/main/java/xtremweb" />
+  <property name="src.java.test.dir" value="${src.test.dir}/java/xtremweb" />
+  <property name="src.c.dir" value="${src.dir}/natif/src/main/natif/xtremweb/archdep" />
   <property name="src.scripts.dir" value="${src.dir}/scripts" />
   <property name="lib.dir" value="${basedir}/classes" />
   <property name="build.dir" value="${basedir}/build" />
@@ -48,6 +53,9 @@
   <property name="rpm.dir" value="${build.dir}/rpm" />
   <property name="xwidl.dir" value="${src.java.dir}/XwIDL" />
   <property name="antlr.dir" value="${src.java.dir}/antlr" />
+  <property name="install.www.dir" value="${build.dir}/WWW" />
+  <property name="debug" value="true" />
+  <property name="debuglevel" value="source,lines" />
 
   <!-- BUILD CONFIG -->
   <target name="configure" depends="version" >
@@ -71,7 +79,7 @@
             <srcfiles dir="${src.java.dir}/communications" includes="*" />
             <srcfiles dir="${src.java.dir}/dispatcher" includes="*" />
             <srcfiles dir="${src.java.dir}/archdep" includes="*" />
-	    <srcfiles dir="${src.java.dir}/exec" includes="*" />
+		    <srcfiles dir="${src.java.dir}/exec" includes="*" />
             <srcfiles dir="${src.java.dir}/worker" includes="*" />
             <srcfiles dir="${src.java.dir}/services" includes="*" />
             <srcfiles dir="${src.java.dir}/dispatcher" includes="*" />
@@ -191,18 +199,8 @@
     <filter token="BUILD_TIME" value="${v.build}" />
     <filter token="XWVERSION" value="${v.rev}" />
     <filter token="VBRANCH" value="${v.branch}" />   
-    <filter token="ADMINUSER" value="${xtremweb.admin.login}" />
     <copy file="${src.java.dir}/common/CommonVersion.java.in" 
 	  filtering="yes" overwrite="yes" tofile="${src.java.dir}/common/CommonVersion.java" />
-    <filter token="KEYPASSPHRASE" value="${xw.keypassphrase}" />
-    <filter token="KEYSERVERPASSWORD" value="${xw.server.keypassword}" />
-    <filter token="SMTPHOST" value="${smtp.host}" />
-    <filter token="ALIVEPERIOD" value="${alive.period}" />
-    <filter token="DEFAULTUSER" value="${xtremweb.admin.login}"/>
-    <checksum file="${build.dir}/build.conf" property="xtremweb.admin.password.coded" />
-    <filter token="DEFAULTPASSWORD" value="${xtremweb.admin.password.coded}"/>
-    <checksum file="${build.dir}/build.xml" property="xtremweb.admin.password.coded2" />
-    <filter token="DEFAULTPASSWORD2" value="${xtremweb.admin.password.coded2}"/>
   </target>
 
   
@@ -320,7 +318,6 @@
     <mkdir dir="${install.dir}/share/${project}" />
     <mkdir dir="${install.dir}/share/${project}/classes" />
     <mkdir dir="${install.dir}/share/${project}/keystore" />
-    <mkdir dir="${install.www.dir}" />
   </target>
 
   
@@ -332,7 +329,7 @@
     	includeAntRuntime="false"
     	destdir="${build.classes}"
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="XwIDL/**/*.java" />
@@ -348,7 +345,7 @@
     	includeAntRuntime="false"
 	   destdir="${build.classes}"
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="obj/**/*.java" />
@@ -364,7 +361,7 @@
     	includeAntRuntime="false"
 	   destdir="${build.classes}"
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="iface/**/*.java" />
@@ -384,7 +381,7 @@
     	includeAntRuntime="false"
 	   destdir="${build.classes}"
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="**/*.java" />
@@ -404,7 +401,7 @@
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="communications/**/*.java" />
@@ -420,7 +417,7 @@
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="services/**/*.java" />
@@ -433,10 +430,10 @@
   <target depends="prepare,archdep" name="jni">
     <!-- generate jni headers -->
 <!--
- If, for any reason, javah task is not available comment these 6 next lines
-and try the following exec tasks
-(I have such a problem when compiling under amd64... I don't know why)
+ javah task does not work with openjdk
+ :'(
 -->
+<!--
     <javah class="xtremweb.archdep.PortMapper"
 	   classpath="${classpath}" 
 	   outputfile="${src.c.dir}/PortMapper.h" />
@@ -455,13 +452,10 @@ and try the following exec tasks
     <javah class="xtremweb.archdep.MacSaver" 
 	   classpath="${classpath}" 
 	   outputfile="${src.c.dir}/MacSaver.h" />
-    
+    -->
 <!--
- If, for any raison, javah task is not available comment these 6 previous javah tasks
-and try the 6 following exec tasks
-(I have such a problem when compiling under amd64... I don't know why)
+     use exec task, because javah task does not with openjdk...
 -->
-<!--
     <exec dir="${src.c.dir}" executable="javah" failonerror="true">
       <arg line="-classpath ${classpath} -o ${src.c.dir}/PortMapper.h xtremweb.archdep.PortMapper" />
 		</exec>
@@ -480,7 +474,6 @@ and try the 6 following exec tasks
     <exec dir="${src.c.dir}" executable="javah" failonerror="true">
       <arg line="-classpath ${classpath} -o ${src.c.dir}/MacSaver.h xtremweb.archdep.MacSaver" />
 		</exec>
--->
 
     <copy todir="${src.c.dir}"
           filtering="no" overwrite="yes">
@@ -510,7 +503,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset><include name="archdep/**" /></patternset> 
     </javac>
@@ -526,7 +519,7 @@ and try the 6 following exec tasks
 	    	includeAntRuntime="false"
 		   destdir="${build.classes}" 
 		   srcdir="${src.java.test.dir}"
-		   source="1.6"
+		   source="1.8"
 		   deprecation="on">
 	      <patternset>
 	        <include name="**" />
@@ -544,7 +537,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="dispatcher/**" />
@@ -564,7 +557,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	   destdir="${build.classes}"
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
 	<include name="worker/**" />
@@ -609,11 +602,9 @@ and try the 6 following exec tasks
 
     <mkdir dir="${build.classes}/data" />
 
-    <filter token="DISPATCHERS" value="${dispatcher.servers}" />
-    <filter token="DATASERVERS" value="${data.servers}" />
 
     <copy todir="${build.classes}/data"
-          filtering="no" overwrite="yes">
+          filtering="yes" overwrite="yes">
       <fileset dir="${misc.dir}">
         <include name="**/*.ico" />
         <include name="**/*.html" />
@@ -634,7 +625,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	     destdir="${build.classes}" 
 	     srcdir="${src.java.dir}"
-	     source="1.6"
+	     source="1.8"
 	     deprecation="on">
         <patternset>
           <include name="data/**" />
@@ -655,7 +646,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	     destdir="${build.classes}" 
 	     srcdir="${src.java.dir}"
-	     source="1.6"
+	     source="1.8"
 	     deprecation="on">
         <patternset>
 	  <include name="rpcd/**" />
@@ -700,7 +691,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	     destdir="${build.classes}" 
 	     srcdir="${src.java.dir}"
-	     source="1.6"
+	     source="1.8"
 	     deprecation="on">
         <patternset>
 	  <include name="rpcv/**" />
@@ -718,7 +709,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	     destdir="${build.classes}" 
 	     srcdir="${src.java.dir}"
-	     source="1.6"
+	     source="1.8"
 	     deprecation="on">
         <patternset>
 	  <include name="monitor/**" />
@@ -737,7 +728,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
 	<include name="EP/**" />
@@ -755,7 +746,7 @@ and try the 6 following exec tasks
     	includeAntRuntime="false"
 	   destdir="${build.classes}" 
 	   srcdir="${src.java.dir}"
-	   source="1.6"
+	   source="1.8"
 	   deprecation="on">
       <patternset>
         <include name="upgrade/**" />
@@ -805,29 +796,7 @@ and try the 6 following exec tasks
 
     <delete file="${install.www.dir}/download/xwhep.client-${version}.zip" failonerror="false" />
 
-    <delete includeEmptyDirs="true" >
-      <fileset dir="${build.dir}/stand-alone" >
-        <include name="COM/**" />
-        <include name="META-INF/**" />
-        <include name="antlr/**" />
-        <include name="com/**" />
-        <include name="data/**" />
-        <include name="javax/**" />
-        <include name="org/**" />
-        <include name="uk/**" />
-        <include name="xtremweb/**" />
-        <include name="CHANGELOG" />
-        <include name="openid-providers.properties" />
-        <include name="plugin.properties" />
-        <include name="License**" />
-        <include name="${JARFILE}" />
-      </fileset>
-    </delete>
-    
     <!-- make install must copy the files (jni shared libraries) in ${dist.lib} -->
-    <exec dir="${build.dir}/stand-alone" executable="make" failonerror="true">
-      <arg line="clean" />
-    </exec>
     <exec dir="${src.c.dir}" executable="make">
       <arg line="-f &apos;${build.dir}/natif.mk&apos; clean" />
     </exec>
@@ -871,33 +840,34 @@ and try the 6 following exec tasks
 	<!-- Sonar -->
 	<!--       -->
 	
+    <!-- You may wish to change this one -->
+	 <property name="sonar.host.url" value="http://localhost:9000" />
 
+    <!-- Next should not be changed -->
 	<property name="sonar.root.dir" value="${build.dir}/.sonar" />
 	<property name="sonar.reports.dir" value="${build.dir}/sonar-reports" />
 	<property name="sonar.jacoco.itReportPath" value="${sonar.reports.dir}/jacoco.exec" />
 	<property name="sonar.host.url" value="${sonar.host.url}" />
-	<property name="sonar.jdbc.url" value="${sonar.jdbc.url}" />
-	<property name="sonar.jdbc.username" value="${sonar.jdbc.username}" />
-	<property name="sonar.jdbc.password" value="${sonar.jdbc.password}" />
 	<!-- Define the Sonar project properties -->
-	<property name="sonar.projectKey" value="xwhep-10.x" />
+	<property name="sonar.projectKey" value="xwhep-10" />
 	<property name="sonar.projectName" value="XtremWeb-HEP" />
 	<property name="sonar.projectVersion" value="${version}" />
 	<property name="sonar.language" value="java" />
 	<property name="sonar.sources" value="${src.dir}" />
-	<property name="sonar.binaries" value="${dist.lib}" />
 <!--
+	<property name="sonar.binaries" value="${dist.lib}" />
 	<property name="sonar.dynamicAnalysis" value="true" />
--->
 	<property name="sonar.dynamicAnalysis" value="reuseReports" />
+-->
 	
+	<!--
 	<property name="junit.reports.dir" value="${sonar.reports.dir}/junit-test" />
+	-->
+	<property name="sonar.junit.reportsPath" value="${sonar.reports.dir}/junit-test" />
 	<property name="coverage.reports.dir" value="${sonar.reports.dir}/coverage" />
 
-   	<property name="sonar.surefire.reportsPath" value="${junit.reports.dir}" />
-<!--
+   	<property name="sonar.surefire.reportsPath" value="${sonar.junit.reportsPath}" />
 	<property name="sonar.jacoco.reportPath" value="${coverage.reports.dir}" />
--->
 	
 	<!-- Define the Sonar target -->
 
@@ -909,15 +879,16 @@ and try the 6 following exec tasks
 	<target name="sonar-init" depends="configure">
 		<mkdir dir="${sonar.root.dir}" />
 		<mkdir dir="${sonar.reports.dir}" />
-		<mkdir dir="${junit.reports.dir}" />
+		<mkdir dir="${sonar.junit.reportsPath}" />
 		<mkdir dir="${coverage.reports.dir}" />
+		<taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml">
+		</taskdef>
+	    <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+	    </taskdef>
 	</target>
 	
 	<target name="sonar" depends="sonar-init">
-		 <taskdef name="sonar" 
-		         classname="org.sonar.ant.SonarTask" />
-	 	    <!-- Execute Sonar -->
-	    <sonar />
+		<sonar:sonar />
 	</target>
 
 
@@ -932,14 +903,10 @@ and try the 6 following exec tasks
 		         classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask" />
 	  <junit fork="yes" printsummary="yes" haltonfailure="yes" clonevm="true">
 	    <sysproperty key="net.sourceforge.cobertura.datafile" file="cobertura.ser" />
-        <jvmarg value="-XX:-UseSplitVerifier"/>
-<!-- 
-        <jvmarg value="-DLOGGERLEVEL=FINEST"/>
- -->
         <classpath>
   	  	  <pathelement path="${classpath}" />
         </classpath>
-        <batchtest fork="yes" todir="${junit.reports.dir}">
+        <batchtest fork="yes" todir="${sonar.junit.reportsPath}">
           <formatter type="plain" usefile="false" />
           <formatter type="xml" usefile="true" />
           <fileset dir="${src.test.dir}">

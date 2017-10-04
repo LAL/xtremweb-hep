@@ -80,17 +80,21 @@ ifeq ("$(TARGET)","Mac OS X")
 #  endif
   JAVA_HEADERS_10_8 = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/JavaVM.framework/Headers/
   JAVA_HEADERS_10_9 = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Headers/
-  JAVA_HEADERS = $(JAVA_HEADERS_10_9)
+  JAVA_HEADERS_10_10 = /System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/
+  JAVA_HEADERS_10_11 = ${JAVA_HOME}/include
+  JAVA_HEADERS = $(JAVA_HEADERS_10_10)
   if ( test -d $(JAVA_HOME)/../Headers ) ; then  JAVA_HEADERS = $(JAVA_HOME)/../Headers ; fi
   if ( test -d $(JAVA_HEADERS_10_8)    ) ; then JAVA_HEADERS = $(JAVA_HEADERS_10_8) ; fi
   if ( test -d $(JAVA_HEADERS_10_9)    ) ; then JAVA_HEADERS = $(JAVA_HEADERS_10_9) ; fi
+  if ( test -d $(JAVA_HEADERS_10_10)   ) ; then JAVA_HEADERS = $(JAVA_HEADERS_10_10) ; fi
+  if ( test -d $(JAVA_HEADERS_10_11)   ) ; then JAVA_HEADERS = $(JAVA_HEADERS_10_11) ; fi
 #  ifeq ("$(JAVA_HEADERS)", "")
 #	@echo "Can't determine JAVA_HEADERS"
 #	exit 1
 #  endif
   ALL = XWUtil.jni
-  CPPFLAGS_MD = -no-cpp-precomp -I$(JAVA_HEADERS)
-
+  CPPFLAGS_MD = -no-cpp-precomp -I'$(TARGET_JAVA_HOME)$(FS)include$(FS)darwin'
+  
   LDFLAGS_MD  = -framework CoreServices -framework JavaVM
   REASON="MACOS"
 endif
@@ -133,7 +137,7 @@ CFLAGS = $(CFLAGS_MD) $(CPUTYPE) -g -Wall $(CPPFLAGS)
 LDFLAGS = $(LDFLAGS_MD) $(CPUTYPE)  -L'$(TARGET_JAVA_HOME)$(FS)lib'
 
 
-BUILD    = ..$(FS)..$(FS)build
+BUILD    = ..$(FS)..$(FS)..$(FS)..$(FS)..$(FS)..$(FS)..$(FS)build
 CLASSDIR = $(BUILD)$(FS)classes
 INSTALLDIR  = $(BUILD)$(FS)dist$(FS)lib
 JNIDIR = $(CLASSDIR)$(FS)jni

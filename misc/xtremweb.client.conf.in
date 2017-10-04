@@ -84,7 +84,7 @@ DISPATCHERS=@DISPATCHERS@
 # default value : 443
 ## HTTPSPORT=443
 
-# next is XML RPC port
+# next is XML RPC port listened by the client shell
 # default value : 4327
 ## XMLRPCPORT=4327
 
@@ -107,6 +107,12 @@ DISPATCHERS=@DISPATCHERS@
 # This contains the max amount of entries in local cache
 # Default : 10000
 #cachesize
+
+# This is the login we connect for
+# aka: we want to do something for someone else.
+# We (as defined by credentials LOGIN/PASSWORD or any) must have MANDATED_USER user rights
+# since 10.6.0
+#MANDATINGLOGIN=
 
 # Login and password to connect to the server (required)
 LOGIN=@DEFAULTUSER@
@@ -315,7 +321,7 @@ SSLKEYSTORE=../keystore/xwhepclient.keys
 #  INFO
 #  WARN
 #  ERROR
-LOGGERLEVEL=@LOGGERLEVEL@
+LOGGERLEVEL=INFO
 
 #####
 ##### End of File

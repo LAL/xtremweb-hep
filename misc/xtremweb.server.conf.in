@@ -76,7 +76,7 @@ DBPASS= @DBPASSWORD@
 #
 # This contains the mail protocol to use
 # Since 9.1.0
-# Default : "smtp"
+# Default : smtp
 #
 #MAILPROTOCOL=pop3
 
@@ -99,7 +99,18 @@ DBPASS= @DBPASSWORD@
 # Default : false
 # since 8.2.0
 #
-#OPENIDREGISTRATION=false
+#DELEGATEDREGISTRATION=false
+
+#
+# Server : the JWT issuer
+# @since 11.0.0
+#
+#JWTETHISSUER=
+#
+# Server : the JWT secret key to decode
+# @since 11.0.0
+#
+#JWTETHSECRET=
 
 #
 # This is necessary to delegate authentication via OAuth
@@ -110,11 +121,43 @@ DBPASS= @DBPASSWORD@
 
 #
 # This is necessary to delegate authentication via OAuth
-# The facebook application ID
+# The facebook application KEY
 # @since 9.1.1
 #
 #FACEBOOKAPPKEY=
+#
+# This is necessary to delegate authentication via OAuth
+# The facebook auth URI
+# @since 10.5.0
+#
+#FACEBOOKAUTHURI=
+#
+# Facebook OAuth discovery point to retrieve all services URI
+# This should not be changed !
+# You can try this in your browser
+# @since 10.5.0
+#
+#FACEBOOK_DISCOVERYURI=
+#
+# This is necessary to delegate authentication via OAuth
+# The facebook scope
+# @since 10.5.0
+#
+#FACEBOOKSCOPE=
+#
+# This is necessary to delegate authentication via OAuth
+# The facebook callback url
+# @since 10.5.0
+#
+#FACEBOOKCALLBACKURL=
 
+#
+# Google OAuth discovery point to retrieve all services URI
+# This should not be changed
+# You can try this in your browser
+# @since 10.5.0
+#
+GOOGLE_DISCOVERYURI=https://accounts.google.com/.well-known/openid-configuration
 #
 # This is necessary to delegate authentication via OAuth
 # The google application ID
@@ -124,10 +167,106 @@ DBPASS= @DBPASSWORD@
 
 #
 # This is necessary to delegate authentication via OAuth
-# The google application ID
+# The google application KEY
 # @since 9.1.1
 #
 #GOOGLEAPPKEY=
+#
+# This is necessary to delegate authentication via OAuth
+# The google auth URI
+# This should not be changed
+# @since 10.5.0
+GOOGLEAUTHURI="https://www.googleapis.com/oauth2/v3/userinfo"
+#
+# This is necessary to delegate authentication via OAuth
+# The google scope
+# @since 10.5.0
+#
+#GOOGLESCOPE=
+#
+# This is necessary to delegate authentication via OAuth
+# The google callback url
+# @since 10.5.0
+#
+#GOOGLECALLBACKURL=
+
+#
+# This is necessary to delegate authentication via OAuth
+# The twitter application ID
+# @since 10.5.0
+#
+#TWITTERAPPID=
+
+#
+# This is necessary to delegate authentication via OAuth
+# The twitter application KEY
+# @since 10.5.0
+#
+#TWITTERAPPKEY=
+#
+# This is necessary to delegate authentication via OAuth
+# The twitter auth URI
+# @since 10.5.0
+#
+#TWITTERAUTHURI=
+#
+# Twitter OAuth discovery point to retrieve all services URI
+# This should not be changed !
+# You can try this in your browser
+# @since 10.5.0
+#
+#TWITTER_DISCOVERYURI=
+#
+# This is necessary to delegate authentication via OAuth
+# The twitter scope
+# @since 10.5.0
+#
+#TWITTERSCOPE=
+#
+# This is necessary to delegate authentication via OAuth
+# The twitter callback url
+# @since 10.5.0
+#
+#TWITTERCALLBACKURL=
+
+#
+# This is necessary to delegate authentication via OAuth
+# The yahoo application ID
+# @since 10.5.0
+#
+#YAHOOAPPID=
+
+#
+# This is necessary to delegate authentication via OAuth
+# The yahoo application KEY
+# @since 10.5.0
+#
+#YAHOOAPPKEY=
+#
+# This is necessary to delegate authentication via OAuth
+# The yahoo auth URI
+# @since 10.5.0
+#
+#YAHOOAUTHURI=
+#
+# Yahoo OAuth discovery point to retrieve all services URI
+# This should not be changed !
+# You can try this in your browser
+# @since 10.5.0
+#
+#YAHOO_DISCOVERYURI=
+#
+# This is necessary to delegate authentication via OAuth
+# The yahoo scope
+# @since 10.5.0
+#
+#YAHOOSCOPE=
+#
+# This is necessary to delegate authentication via OAuth
+# The yahoo callback url
+# @since 10.5.0
+#
+#YAHOOCALLBACKURL=
 
 #
 # This is an integer containing the amount of seconds a user can stay connected to the web interface
@@ -181,7 +320,7 @@ WORKERUID=
 # default value : 443
 ## HTTPSPORT=443
 
-# next is XML RPC port
+# next is XML RPC port listened by the client shell
 # default value : 4327
 ## XMLRPCPORT=4327
 
@@ -193,6 +332,11 @@ WORKERUID=
 # default value : 4329
 ## SMARTSOCKETSPORT=4329
 
+# next is the SmartSockets hub external address
+# this may be needed if running inside an EC2 VM that don't know its public IP
+# default value : null
+## SMARTSOCKETSEXTERNALADDRESS=
+
 # next is proxy port
 # default value : -1 (means don't used)
 # since 7.3.0
@@ -200,8 +344,7 @@ WORKERUID=
 
 #
 # Internode communications needs a running SmartSockets hub; this may also denote a hub network<br />
-# Property name : "smartsocketshubaddr"<br />
-# Property type : string<br />
+# Property type : string
 # Default value : null
 # @since 8.0.0
 #
@@ -254,8 +397,7 @@ SSLKEYPASSPHRASE= @KEYPASSPHRASE@
 SSLKEYPASSWORD= @KEYSERVERPASSWORD@
 
 # Server        : the directory containing user public keys<br />
-# Property name : "USERCERTDIR"<br />
-# Property type : String<br />
+# Property name : USERCERTDIR
 # Default       : null
 # @since 7.4.0
 # Note : please use full path; don't use ~ or any variable (e.g. $HOME)
@@ -469,7 +611,7 @@ LAUNCHERURL=@LAUNCHERURL@
 #  INFO
 #  WARN
 #  ERROR
-LOGGERLEVEL=@LOGGERLEVEL@
+LOGGERLEVEL=INFO
 
 
 #####

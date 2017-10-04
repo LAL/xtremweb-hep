@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #=============================================================================
 #
 #  Copyright (C) 2011-2013 O. LODYGENSKY
@@ -126,11 +126,13 @@ create()
 
 	touch $OUTPUT 
 
-	for ((i = 0 ; i < $MAX_ALIASES ; i++)) ; do
+	for ((i=0 ; i < $MAX_ALIASES ; i++)) ; do
 
 		NEWIP3=`expr $IP3 + $i`
 		ALIASIP="$IP0.$IP1.$IP2.$NEWIP3"
 		ALIASSUBNET="$IP0.$IP1.$IP2.255"
+
+echo $NEWIP3 $ALIASIP $ALIASSUBNET
 
 		case $OSTYPE in
 	   	darwin* )
@@ -140,13 +142,16 @@ create()
 			networksetup -duplicatenetworkservice "$ITF" $ALIASITF
 			[ $? -ne 0 ] && fatal "Cannot duplicate network service $ITF"
 			echo networksetup -setmanualwithdhcprouter $ALIASITF $ALIASIP
-			networksetup -setmanualwithdhcprouter $ALIASITF $ALIASIP
+			#networksetup -setmanualwithdhcprouter $ALIASITF $ALIASIP
+			networksetup -setmanual $ALIASITF $ALIASIP "255.255.255.0"
 			[ $? -ne 0 ] && fatal "Cannot setmanual IP addr $ALIASITF $ALIASIP"
 		;;
 
     	linux* )
 			ALIASITF="$ITF:$NEWIP3"
-			ifconfig $ITF $ALIASIP
+			echo $ALIASITF >> $OUTPUT 
+			echo "ifconfig $ALIASITF $ALIASIP"
+			ifconfig $ALIASITF $ALIASIP
       	;;
 
 		* )

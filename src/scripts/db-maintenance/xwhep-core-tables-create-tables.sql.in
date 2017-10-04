@@ -206,43 +206,46 @@ insert into versions (version, installation) values ('@XWVERSION@', now());
 -- Data for table "userRights"
 -- ---------------------------------------------------------------------------
 insert into userRights (userRightId, userRightName, userRightDescription) values ( 0, 'NONE',            null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 1, 'LISTJOB',         null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 2, 'INSERTJOB',       null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 3, 'GETJOB',          null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 4, 'DELETEJOB',       null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 5, 'LISTDATA',        null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 6, 'INSERTDATA',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 7, 'GETDATA',         null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 8, 'DELETEDATA',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values ( 9, 'LISTGROUP',       null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (10, 'INSERTGROUP',     null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (11, 'GETGROUP',        null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (12, 'DELETEGROUP',     null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (13, 'LISTSESSION',     null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (14, 'INSERTSESSION',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (15, 'GETSESSION',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (16, 'DELETESESSION',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (17, 'LISTHOST',        null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (18, 'GETHOST',         null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (19, 'LISTUSER',        null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (20, 'GETUSER',         null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (21, 'LISTUSERGROUP',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (22, 'GETUSERGROUP',    null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (23, 'LISTAPP',         null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (24, 'GETAPP',          null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (25, 'STANDARD_USER',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (26, 'UPDATEWORK',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (27, 'WORKER_USER',     null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (28, 'INSERTUSER',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (29, 'DELETEUSER',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (30, 'INSERTAPP',       null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (31, 'DELETEAPP',       null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (32, 'ADVANCED_USER',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (33, 'INSERTHOST',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (34, 'DELETEHOST',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (35, 'INSERTUSERGROUP', null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (36, 'DELETEUSERGROUP', null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (37, 'SUPER_USER',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 1, 'INSERTJOB',       null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 2, 'GETJOB',          null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 3, 'INSERTDATA',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 4, 'GETDATA',         null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 5, 'GETGROUP',        null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 6, 'GETSESSION',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 7, 'GETHOST',         null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 8, 'GETAPP',          null);
+insert into userRights (userRightId, userRightName, userRightDescription) values ( 9, 'GETUSER',         null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (10, 'UPDATEWORK',      'worker can update work for the owner');
+insert into userRights (userRightId, userRightName, userRightDescription) values (11, 'WORKER_USER',     'worker cannot do everything');
+insert into userRights (userRightId, userRightName, userRightDescription) values (12, 'VWORKER_USER',    null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (13, 'BROADCAST',       'submit one job to all workers');
+insert into userRights (userRightId, userRightName, userRightDescription) values (14, 'LISTJOB',         null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (15, 'DELETEJOB',       null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (16, 'LISTDATA',        null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (17, 'DELETEDATA',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (18, 'LISTGROUP',       null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (19, 'INSERTGROUP',     null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (20, 'DELETEGROUP',     null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (21, 'LISTSESSION',     null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (22, 'INSERSESSION',    null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (23, 'DELETESESSION',   null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (24, 'LISTHOST',        null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (25, 'LISTUSER',        null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (26, 'LISTUSERGROUP',   null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (27, 'GETUSERGROUP',    null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (28, 'INSERTAPP',       null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (29, 'DELETEAPP',       null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (30, 'LISTAPP',         null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (31, 'STANDARD_USER',   'non privileged user');
+insert into userRights (userRightId, userRightName, userRightDescription) values (32, 'INSERTUSER',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (33, 'DELETEUSER',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (34, 'ADVANCED_USER',   'privileged user (e.g. user group manager)');
+insert into userRights (userRightId, userRightName, userRightDescription) values (35, 'MANDATED_USER',   'can work in name of another user');
+insert into userRights (userRightId, userRightName, userRightDescription) values (36, 'INSERTHOST',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (37, 'DELETEHOST',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (38, 'INSERTUSERGROUP', null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (39, 'DELETEUSERGROUP', null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (40, 'SUPER_USER',      'can do all');
 
 -- ---------------------------------------------------------------------------
 -- Data for table "statuses"
@@ -260,6 +263,7 @@ insert into statuses (statusId, statusName, statusObjects, statusComment, status
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (10, 'RESULTREQUEST', 'works',               'The worker should retry to upload the results',                                     null);
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (11, 'AVAILABLE',     'datas',               'The data is available and can be downloaded on demand',                             null);
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (12, 'UNAVAILABLE',   'datas',               'The data is not available and can not be downloaded on demand',                     null);
+insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (13, 'REPLICATING',   'works',               'The object is being replicated',                                                   null);
 
 -- ---------------------------------------------------------------------------
 -- Data for table "dataTypes"
@@ -286,7 +290,8 @@ insert into dataTypes (dataTypeId, dataTypeName, dataTypeDescription) values (14
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (0, 'NONE',       'Unknown application type.');
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (1, 'DEPLOYABLE', 'Type for an application that must be deployed :  Its binary must be downloaded by volunteer resources.');
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (2, 'SHARED',     'Type for an application that is shared by volunteer resources :  Its binary should not be downloaded by volunteer resources.');
-insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (3, 'VIRTUALBOX', 'Type for a VirtualBox image of a virtual machine.');
+insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (3, 'VIRTUALBOX', 'Type for a VirtualBox image of a virtual machine');
+insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (4, 'DOCKER',     'Type for a Docker image of a container');
 
 -- ---------------------------------------------------------------------------
 -- Data for table "packageTypes"
@@ -347,7 +352,7 @@ create table if not exists  users  (
   runningJobs   int(15)                     default 0        comment 'Running jobs counter. updated on work request',
   errorJobs     int(15)                     default 0        comment 'Error jobs counter. updated on job error',
   usedCpuTime   bigint                      default 0        comment 'Average execution time. updated on work completion',
-  certificate   varchar(32760)                               comment 'This is the X.509 proxy file content',
+  certificate   text                                         comment 'This is the X.509 proxy file content',
   accessRights  int(4)                      default 0x700    comment 'Since 5.8.0  This defines access rights "a la" linux FS  See xtremweb.common.XWAccessRights.java',
   password      varchar(254)      not null  default ''       comment 'User password',
   email         varchar(254)      not null  default ''       comment 'User email',
@@ -809,7 +814,7 @@ create table if not exists  works  (
   mtime               timestamp                                    comment 'Timestamp of last update',
   userproxy           varchar(254)                                 comment 'This is the X.509 user proxy URI to identify the owner of this work. this is not a certificate',
   accessRights        int(4)                      default 0x700    comment 'This defines access rights "a la" linux FS  See xtremweb.common.XWAccessRights.java',
-  sgid                varchar(254)                                 comment 'XWHEP 7.2.0 : this is the Service Grid Identifier; this is set by the DG 2 SG bridge, if any',
+  sgid                varchar(254)                                 comment 'external id - xw 7.2.0: Service Grid Identifier set by the DG 2 SG bridge; xw 11.1.0 : blockchain transaction hash',
   wallclocktime       int(10)                                      comment 'Wallclocktime : how many seconds a job can be computed  The job is stopped as the wall clocktime is reached  If wallclocktime < 0, the job is not stopped  Since 8.2.0',
   maxRetry            int(3)                                       comment 'How many time should we try to compute',
   retry               int(3)                                       comment 'How many time have we tried to compute  Since 8.0.0',
@@ -820,7 +825,7 @@ create table if not exists  works  (
   maxWallClockTime    int(10)                                      comment 'Wallclocktime : how many seconds a job can be computed.  The job is stopped as the wall clocktime is reached.  If < 0, the job is not stopped.',
   returnCode          int(3)                                       comment 'Application return code',
   server              varchar(254)                                 comment 'For replication',
-  cmdLine             varchar(32760)                               comment 'This work command line to provide to application',
+  cmdLine             text                                         comment 'This work command line to provide to application',
   listenport          varchar(254)                                 comment 'The job may be a server that needs to listen to some ports  This is a comma separated integer list  Privileged ports (lower than 1024) are ignored  Default : null (no port)  Since 8.0.0',
   smartsocketaddr     varchar(8190)                                comment 'The SmartSockets addresses to connect to the listened ports  This is set if listenport != null  This is a comma separated SmartSockets addresses list  Default : null  Since 8.0.0',
   smartsocketclient   varchar(8190)                                comment 'This is the column index of a semicolon list containing tuple of   SmartSockets address and local port.  This helps a job running on XWHEP worker side to connect to a server  Like application running on XWHEP client side.  E.g. "Saddr1, port1; Saddr2, por',  --  This is the column index of a semicolon list containing tuple of   SmartSockets address and local port.  This helps a job running on XWHEP worker side to connect to a server  Like application running on XWHEP client side.  E.g. "Saddr1, port1; Saddr2, port2"   Default : null  Since 8.0.0',
@@ -855,6 +860,7 @@ create table if not exists  works  (
   index  groupUID            (groupUID),
   index  expectedhostUID     (expectedhostUID),
   index  ownerUID            (ownerUID),
+  index  sgId                (sgId),
   index  completedDate       (completedDate)
   )
 engine  = @DBENGINE@,
@@ -951,7 +957,7 @@ grant all privileges on * to @DBUSER@@localhost.localdomain identified by '@DBUS
 
 grant all privileges on * to @DBUSER@@'@XWHOST@'            identified by '@DBUSERPASSWORD@' with grant option;
 
-set password for @DBUSER@@localhost = old_password ('@DBUSERPASSWORD@');
+-- set password for @DBUSER@@localhost = old_password ('@DBUSERPASSWORD@');
 
 
 -- ===========================================================================

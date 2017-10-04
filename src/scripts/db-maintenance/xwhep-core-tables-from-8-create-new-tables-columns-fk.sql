@@ -191,11 +191,12 @@ insert into userRights (userRightId, userRightName, userRightDescription) values
 insert into userRights (userRightId, userRightName, userRightDescription) values (30, 'INSERTAPP',       null);
 insert into userRights (userRightId, userRightName, userRightDescription) values (31, 'DELETEAPP',       null);
 insert into userRights (userRightId, userRightName, userRightDescription) values (32, 'ADVANCED_USER',   null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (33, 'INSERTHOST',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (34, 'DELETEHOST',      null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (35, 'INSERTUSERGROUP', null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (36, 'DELETEUSERGROUP', null);
-insert into userRights (userRightId, userRightName, userRightDescription) values (37, 'SUPER_USER',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (33, 'DELEGATION_USER', null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (34, 'INSERTHOST',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (35, 'DELETEHOST',      null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (36, 'INSERTUSERGROUP', null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (37, 'DELETEUSERGROUP', null);
+insert into userRights (userRightId, userRightName, userRightDescription) values (38, 'SUPER_USER',      null);
 
 -- ---------------------------------------------------------------------------
 -- Data for table "statuses"
@@ -213,6 +214,7 @@ insert into statuses (statusId, statusName, statusObjects, statusComment, status
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (10, 'RESULTREQUEST', 'works',               'The worker should retry to upload the results',                                     null);
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (11, 'AVAILABLE',     'datas',               'The data is available and can be downloaded on demand',                             null);
 insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (12, 'UNAVAILABLE',   'datas',               'The data is not available and can not be downloaded on demand',                     null);
+insert into statuses (statusId, statusName, statusObjects, statusComment, statusDeprecated) values (13, 'REPLICATING',   'works',               'The object is being replicated',                                                   null);
 
 -- ---------------------------------------------------------------------------
 -- Data for table "dataTypes"
@@ -239,7 +241,8 @@ insert into dataTypes (dataTypeId, dataTypeName, dataTypeDescription) values (14
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (0, 'NONE',       'Unknown application type.');
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (1, 'DEPLOYABLE', 'Type for an application that must be deployed :  Its binary must be downloaded by volunteer resources.');
 insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (2, 'SHARED',     'Type for an application that is shared by volunteer resources :  Its binary should not be downloaded by volunteer resources.');
-insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (3, 'VIRTUALBOX', 'Type for a VirtualBox image of a virtual machine.');
+insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (3, 'VIRTUALBOX', 'Type for a VirtualBox image of a virtual machine');
+insert into appTypes (appTypeId, appTypeName, appTypeDescription) values (4, 'DOCKER',     'Type for a Docker image of a container');
 
 -- ---------------------------------------------------------------------------
 -- Data for table "packageTypes"
