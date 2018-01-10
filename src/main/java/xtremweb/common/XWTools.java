@@ -31,12 +31,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
@@ -59,7 +63,6 @@ import javax.net.ssl.SSLSocketFactory;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import xtremweb.dispatcher.HTTPOpenIdHandler;
 
 /**
  *
@@ -488,7 +491,7 @@ public class XWTools {
 			}
 		}
 		if ((!dir.exists()) && (!dir.mkdirs())) {
-			throw new IOException("can't create directory : " + dir.getCanonicalPath());
+			throw new IOException("can't create directory : " + dir.getAbsolutePath());
 		}
 	}
 
@@ -794,7 +797,7 @@ public class XWTools {
 	 * @throws CertificateEncodingException
 	 */
 	public static final X509Certificate[] retrieveCertificates(final String host, final boolean sav)
-			throws UnknownHostException, IOException, CertificateEncodingException {
+			throws IOException, CertificateEncodingException {
 		final int port = 443;
 
 		final SocketFactory factory = SSLSocketFactory.getDefault();
@@ -803,20 +806,22 @@ public class XWTools {
 		socket.startHandshake();
 
 		final X509Certificate[] certs = (X509Certificate[]) socket.getSession().getPeerCertificates();
-		final Logger logger = new Logger(HTTPOpenIdHandler.class);
-		logger.info(host + " : certs retrieved = " + certs.length);
+		final Logger logger = new Logger("XWTools");
+		logger.debug(host + " : certs retrieved = " + certs.length);
 		int i = 0;
 		for (final X509Certificate cert : certs) {
 			PrintStream out = System.out;
-			logger.info("CN        = " + cert.getSubjectX500Principal().getName());
-			logger.info("Issuer CN = " + cert.getIssuerX500Principal().getName());
+			logger.debug("CN        = " + cert.getSubjectX500Principal().getName());
+			logger.debug("Issuer CN = " + cert.getIssuerX500Principal().getName());
 			if (sav) {
-				logger.info("Saving to " + host + "_" + i + ".pem");
+				logger.debug("Saving to " + host + "_" + i + ".pem");
 				out = new PrintStream(new File(host + "_" + i++ + ".pem"));
 			}
-			out.println("-----BEGIN CERTIFICATE-----");
-			out.println(new sun.misc.BASE64Encoder().encode(cert.getEncoded()));
-			out.println("-----END CERTIFICATE-----");
+			if((sav) || (logger.debug())) {
+				out.println("-----BEGIN CERTIFICATE-----");
+				out.println(new sun.misc.BASE64Encoder().encode(cert.getEncoded()));
+				out.println("-----END CERTIFICATE-----");
+			}
 			if (sav) {
 				out.close();
 			}
@@ -880,32 +885,93 @@ public class XWTools {
 			final X509Certificate[] gcerts = XWTools.retrieveCertificates(GOOGLE_ADDR, false);
 			for (int i = 0; i < gcerts.length; i++) {
 				final X509Certificate cert = gcerts[i];
-				try {
-					final String alias = cert.getSubjectDN().toString();
-					logger.finest("KeyStore set entry= " + alias + "; KeyStore.size = " + store.size());
-					store.setCertificateEntry(alias, cert);
-				} catch (final Exception e) {
-					logger.exception("Can't add new entry to keystore", e);
-				}
+				final String alias = cert.getSubjectDN().toString();
+				logger.finest("KeyStore set entry= " + alias + "; KeyStore.size = " + store.size());
+				store.setCertificateEntry(alias, cert);
 			}
+		} catch (final Exception e) {
+			logger.config("Can't add google certs to keystore");
+		}
+		try {
 			final X509Certificate[] ycerts = XWTools.retrieveCertificates(YAHOO_ADDR, false);
 			for (int i = 0; i < ycerts.length; i++) {
 				final X509Certificate cert = ycerts[i];
-				try {
-					final String alias = cert.getSubjectDN().toString();
-					logger.finest("KeyStore set entry= " + alias + "; KeyStore.size = " + store.size());
-					store.setCertificateEntry(alias, cert);
-				} catch (final Exception e) {
-					logger.exception("Can't add new entry to keystore", e);
-				}
+				final String alias = cert.getSubjectDN().toString();
+				logger.debug("KeyStore set entry= " + alias + "; KeyStore.size = " + store.size());
+				store.setCertificateEntry(alias, cert);
 			}
 		} catch (final Exception e) {
-			logger.exception("Can't add new entry to keystore", e);
+			logger.config("Can't add yahoo certs to keystore");
 		}
 		return store;
 	}
 
-	/**
+//    public static String sha256CheckSum(final File data) throws NoSuchAlgorithmException, FileNotFoundException, IOException
+//    {
+//        final MessageDigest md = MessageDigest.getInstance("SHA-256");
+//        try (final FileInputStream fis = new FileInputStream(data)) {
+//
+//        	final byte[] dataBytes = new byte[1024];
+//
+//        	int nread = 0;
+//	        while ((nread = fis.read(dataBytes)) != -1) {
+//	          md.update(dataBytes, 0, nread);
+//	        };
+//	        final byte[] mdbytes = md.digest();
+//
+//	       //convert the byte to hex format method 2
+//	        final StringBuffer hexString = new StringBuffer();
+//	    	for (int i=0;i<mdbytes.length;i++) {
+//	    	  hexString.append(Integer.toHexString(0xFF & mdbytes[i]));
+//	    	}
+//	
+//	    	return hexString.toString();
+//        } 
+//    }
+
+    public static String sha256CheckSum(final File data) throws NoSuchAlgorithmException, IOException 
+    {
+        final MessageDigest md = MessageDigest.getInstance("SHA-256");
+        try (final FileInputStream fis = new FileInputStream(data)) {
+
+        	final byte[] dataBytes = new byte[1024];
+
+        	int nread = 0;
+	        while ((nread = fis.read(dataBytes)) != -1) {
+	          md.update(dataBytes, 0, nread);
+	        };
+	        final byte[] digest = md.digest();
+
+	        return String.format( "%064x", new BigInteger( 1, digest ) );
+        } 
+    }
+
+//    public static String sha256(final String data) throws NoSuchAlgorithmException
+//    {
+//    	final MessageDigest md = MessageDigest.getInstance("SHA-256");
+//        md.update(data.getBytes());
+//
+//        byte byteData[] = md.digest();
+//
+//        final StringBuffer hexString = new StringBuffer();
+//    	for (int i=0;i<byteData.length;i++) {
+//    		String hex=Integer.toHexString(0xff & byteData[i]);
+//   	     	if(hex.length()==1) hexString.append('0');
+//   	     	hexString.append(hex);
+//    	}
+//    	return hexString.toString();
+//    }
+    public static String sha256(String data) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance( "SHA-256" );
+        String text = "Text to hash, cryptographically.";
+
+        // Change this to UTF-16 if needed
+        md.update( text.getBytes( StandardCharsets.UTF_8 ) );
+        byte[] digest = md.digest();
+
+        return String.format( "%064x", new BigInteger( 1, digest ) );
+      }
+    /**
 	 * This is for testing only
 	 */
 	public static void main(final String[] argv) {
@@ -932,6 +998,13 @@ public class XWTools {
 
 			logger.info("uid3 " + uid3 + " " + uid3.hashCode() + " " + (uid3.hashCode() % 1000));
 			logger.info("uid3 " + uid3 + " " + createDir("/tmp", uid3));
+
+			logger.info("sha256  (\"test string to sha256\") = " + sha256("test string to sha256"));
+
+			if (argv.length > 1) {
+				logger.info("sha256CheckSum  (" + argv[1] + ") = " + sha256CheckSum(new File(argv[1])));
+			}
+
 		} catch (final Exception e) {
 			logger.exception(e);
 		}

@@ -44,7 +44,6 @@ import java.net.UnknownHostException;
 import java.nio.channels.SocketChannel;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
-
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
@@ -131,9 +130,10 @@ public class TCPClient extends CommClient {
 	protected void open(URI uri)
 			throws IOException, UnknownHostException, NoRouteToHostException, SSLHandshakeException, ConnectException {
 
-		if (isOpened() == true) {
+		if (isOpened()) {
 			return;
 		}
+		mileStone("<open uri=\"" + uri + "\">");
 		final XWConfigurator config = getConfig();
 		try {
 			nio = config.nio();
@@ -167,14 +167,12 @@ public class TCPClient extends CommClient {
 			}
 			uri = uri2;
 
-			mileStone("<open uri='" + uri + "'>");
-
 			final File keyFile = config.getKeyStoreFile();
 
 			int nbopens = 0;
 			for (nbopens = 0; nbopens < getSocketRetries(); nbopens++) {
 				try {
-					if ((keyFile == null) || (keyFile.exists() == false)) {
+					if ((keyFile == null) || (!keyFile.exists())) {
 						getLogger().warn("unsecured communications : not using SSL");
 
 						if (nio) {
@@ -198,6 +196,8 @@ public class TCPClient extends CommClient {
 						((SSLSocket) socket).startHandshake();
 						nio = false;
 					}
+				} catch(SSLHandshakeException e) {
+					throw e;
 				} catch (final IOException e) {
 					getLogger().exception("open", e);
 					try {
@@ -215,7 +215,7 @@ public class TCPClient extends CommClient {
 			}
 
 			// mac os x don't like that :(
-			if (config.getBoolean(XWPropertyDefs.OPTIMIZENETWORK) && (OSEnum.getOs().isMacosx() == false)) {
+			if (config.getBoolean(XWPropertyDefs.OPTIMIZENETWORK) && (!OSEnum.getOs().isMacosx())) {
 				socket.setSoLinger(false, 0); // don't wait on close
 				socket.setTcpNoDelay(true); // don't wait to send
 				socket.setTrafficClass(0x08); // maximize throughput

@@ -43,7 +43,6 @@ import javax.security.auth.x500.X500Principal;
 
 import xtremweb.common.BytePacket;
 import xtremweb.common.Logger;
-import xtremweb.common.MD5;
 import xtremweb.common.OSEnum;
 import xtremweb.common.StreamIO;
 import xtremweb.common.UID;
@@ -150,17 +149,13 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 	/**
 	 * @see xtremweb.communications.CommHandler#setSocket(Socket)
 	 */
-	private void paramSocket(final Socket s) throws RemoteException {
-
-		setRemoteName(s.getInetAddress().getHostName());
-		setRemoteIP(s.getInetAddress().getHostAddress());
-		setRemotePort(s.getPort());
+	private void paramSocket(final Socket _socket) throws RemoteException {
 
 		final XWConfigurator config = getConfig();
 		final Logger logger = getLogger();
 
 		try {
-			s.setSoTimeout(config.getInt(XWPropertyDefs.SOTIMEOUT));
+			_socket.setSoTimeout(config.getInt(XWPropertyDefs.SOTIMEOUT));
 		} catch (final Exception e) {
 			logger.exception(e);
 		}
@@ -168,10 +163,10 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 		final boolean net = Boolean.parseBoolean(config.getProperty(XWPropertyDefs.OPTIMIZENETWORK));
 		if ((net) && !OSEnum.getOs().isMacosx()) {
 			try {
-				s.setSoLinger(false, 0); // don't wait on close
-				s.setTcpNoDelay(true); // don't wait to send
-				s.setTrafficClass(0x08); // maximize throughput
-				s.setKeepAlive(false); // don't keep alive
+				_socket.setSoLinger(false, 0); // don't wait on close
+				_socket.setTcpNoDelay(true); // don't wait to send
+				_socket.setTrafficClass(0x08); // maximize throughput
+				_socket.setKeepAlive(false); // don't keep alive
 			} catch (final Exception e) {
 				logger.exception(e);
 			}
@@ -319,7 +314,6 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 					final boolean challenging = client.isChallenging();
 
 					if (challenging) {
-						X500Principal principal = null;
 						final UID newuid = new UID();
 						UserInterface user = null;
 						X509Certificate cert = null;
@@ -349,16 +343,11 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 							getLogger().debug("cert.getIssuerX500Principal().getName() "
 									+ cert.getIssuerX500Principal().getName());
 
-							principal = cert.getSubjectX500Principal();
-							final String subjectName = principal.getName();
-							principal = cert.getIssuerX500Principal();
-							final String issuerName = principal.getName();
+							final String subjectName = cert.getSubjectX500Principal().getName();
+							final String issuerName = cert.getIssuerX500Principal().getName();
 							final String loginName = subjectName + "_" + issuerName;
-							principal = null;
 							final String random = loginName + Math.random();
-							final byte[] strb = random.getBytes();
-							final MD5 md5 = new MD5(strb);
-							final String md5hex = md5.asHex();
+							final String shastr = XWTools.sha256(random);
 
 							// login may be
 							// truncated; see UserIntergace.USERLOGINLENGTH
@@ -375,7 +364,7 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 							if (user == null) {
 								client.setUID(newuid);
 								client.setLogin(loginName);
-								client.setPassword(md5hex);
+								client.setPassword(shastr);
 								client.setOwner(Dispatcher.getConfig().getAdminUid());
 								client.setRights(UserRightEnum.STANDARD_USER);
 								//
@@ -388,21 +377,30 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 							cmd.getUser().setUID(user.getUID());
 						} finally {
 							user = null;
-							cert = null;
-							principal = null;
 						}
 					}
-					// next will close the communication channel
+					if (socket != null) {
+						cmd.setRemoteName(socket.getInetAddress().getHostName());
+						cmd.setRemoteIP(socket.getInetAddress().getHostAddress());
+						cmd.setRemotePort(socket.getPort());
+					}
+					if (sslSocket != null) {
+						cmd.setRemoteName(sslSocket.getInetAddress().getHostName());
+						cmd.setRemoteIP(sslSocket.getInetAddress().getHostAddress());
+						cmd.setRemotePort(sslSocket.getPort());
+					}
+
 					super.run(cmd);
+
 					if (nbmessages++ > XWTools.MAXMESSAGES) {
-						warn("Enough messages (" + getId() + ")");
+						getLogger().warn("Enough messages (" + getId() + ")");
 						cmd = null;
 					}
 
 				} while (cmd != null);
 
 			} catch (final Exception e) {
-				getLogger().debug(remoteAddresse() + " end of communication : " + e.getMessage());
+				getLogger().debug(" end of communication : " + e.getMessage());
 			} finally {
 				close();
 				this.socket = null;
@@ -438,9 +436,6 @@ public class TCPHandler extends xtremweb.dispatcher.CommHandler {
 			writer = null;
 			socket = null;
 			sslSocket = null;
-			resetRemoteName();
-			resetRemoteIP();
-			resetRemotePort();
 			mileStone("</close>");
 		}
 	}

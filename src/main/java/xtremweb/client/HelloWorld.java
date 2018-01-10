@@ -36,7 +36,6 @@ import xtremweb.common.CommandLineParser;
 import xtremweb.common.DataInterface;
 import xtremweb.common.DataTypeEnum;
 import xtremweb.common.Logger;
-import xtremweb.common.MD5;
 import xtremweb.common.MileStone;
 import xtremweb.common.StatusEnum;
 import xtremweb.common.UID;
@@ -206,7 +205,7 @@ public final class HelloWorld {
 				data.setStatus(StatusEnum.UNAVAILABLE);
 				data.setSize(dataFile.length());
 				data.setName(inputFileName);
-				data.setMD5(MD5.asHex(MD5.getHash(dataFile)));
+				data.setMD5(XWTools.sha256CheckSum(dataFile));
 				final DataTypeEnum inputType = DataTypeEnum.getFileType(dataFile);
 				if (inputType != null) {
 					data.setType(inputType);
@@ -215,7 +214,7 @@ public final class HelloWorld {
 				// 1st, send data definition
 				//
 				logger.info("Sending data  '" + inputFileName + "' : " + data.toXml());
-				final XMLRPCCommandSend cmdSend = new XMLRPCCommandSend(dataUri, data);
+				final XMLRPCCommandSend cmdSend = XMLRPCCommandSend.newCommand(dataUri, data);
 				cmdSend.exec(client);
 				//
 				// then send data content
@@ -242,7 +241,7 @@ public final class HelloWorld {
 
 			logger.info("Submitting a new work for application '" + appUid + "' : " + work.toXml());
 
-			final XMLRPCCommandSend cmdSend = new XMLRPCCommandSend(uri, work);
+			final XMLRPCCommandSend cmdSend = XMLRPCCommandSend.newCommand(uri, work);
 			cmdSend.exec(client);
 			logger.info("Submitted " + work.getUID());
 
