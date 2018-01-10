@@ -163,8 +163,8 @@ public abstract class CommClient implements ClientAPI {
 	 * @see xtremweb.communications.URI#URI(String, UID)
 	 */
 	public URI newURI(final UID uid) throws URISyntaxException {
-		logger.finest("CommClient#newURI " + config.getCurrentDispatcher() + ":" + getPort() + "/" + uid);
 		final URI ret = new URI(config.getCurrentDispatcher(), uid);
+		logger.finest("CommClient#newURI : " + ret);
 		return ret;
 	}
 
@@ -325,7 +325,6 @@ public abstract class CommClient implements ClientAPI {
 		try {
 			if (commHandlers.get(Connection.xwScheme()) == null) {
 				final String defaultLayer = config.getProperty(XWPropertyDefs.COMMLAYER);
-
 				addHandler(Connection.xwScheme(), defaultLayer);
 			}
 			if (commHandlers.get(Connection.xwsScheme()) == null) {
@@ -377,6 +376,7 @@ public abstract class CommClient implements ClientAPI {
 			throw new InstantiationException("Comm Handlers not initialized");
 		}
 		try {
+			CommClient ret = (CommClient) (Class.forName((String) commHandlers.get(scheme))).newInstance();
 			return (CommClient) (Class.forName((String) commHandlers.get(scheme))).newInstance();
 		} catch (final IllegalAccessException e) {
 			throw new InstantiationException(e.getMessage());
@@ -1191,8 +1191,8 @@ public abstract class CommClient implements ClientAPI {
 	public void send(final Table obj) throws InvalidKeyException, AccessControlException, IOException,
 			ClassNotFoundException, SAXException, URISyntaxException {
 		final URI uri = newURI();
-		final XMLRPCCommandSend cmd = new XMLRPCCommandSend(uri, obj);
-		send(cmd);
+		final XMLRPCCommandSend cmd = XMLRPCCommandSend.newCommand(uri, obj);
+		this.send(cmd);
 	}
 
 	/**
@@ -1394,7 +1394,7 @@ public abstract class CommClient implements ClientAPI {
 			throws InvalidKeyException, AccessControlException, IOException {
 
 		if (!content.exists()) {
-			throw new IOException(content.getCanonicalPath() + " not found");
+			throw new IOException(content.getAbsolutePath() + " not found");
 		}
 
 		try {

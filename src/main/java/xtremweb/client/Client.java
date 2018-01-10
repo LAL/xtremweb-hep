@@ -41,6 +41,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.text.ParseException;
@@ -69,7 +71,6 @@ import xtremweb.common.DataTypeEnum;
 import xtremweb.common.GroupInterface;
 import xtremweb.common.Logger;
 import xtremweb.common.LoggerLevel;
-import xtremweb.common.MD5;
 import xtremweb.common.MileStone;
 import xtremweb.common.OSEnum;
 import xtremweb.common.SessionInterface;
@@ -106,7 +107,6 @@ import xtremweb.communications.XMLRPCCommandGetHosts;
 import xtremweb.communications.XMLRPCCommandGetSessions;
 import xtremweb.communications.XMLRPCCommandGetTasks;
 import xtremweb.communications.XMLRPCCommandGetTraces;
-import xtremweb.communications.XMLRPCCommandGetUserByLogin;
 import xtremweb.communications.XMLRPCCommandGetUserGroups;
 import xtremweb.communications.XMLRPCCommandGetUsers;
 import xtremweb.communications.XMLRPCCommandGetWorks;
@@ -287,6 +287,7 @@ public final class Client {
 			}
 		}
 
+		logger.debug("commClients.put(" + uri.getScheme() + ")");
 		commClients.put(uri.getScheme(), client);
 
 		client.setAutoClose(false);
@@ -364,10 +365,11 @@ public final class Client {
 	 * @throws SAXException
 	 * @throws InvalidKeyException
 	 * @throws AccessControlException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	private void downloadData(final URI uri, final boolean download)
 			throws ConnectException, UnknownHostException, MalformedURLException, ClassNotFoundException, IOException,
-			InvalidKeyException, SAXException, URISyntaxException, AccessControlException, InstantiationException {
+			InvalidKeyException, SAXException, URISyntaxException, AccessControlException, InstantiationException, NoSuchAlgorithmException {
 
 		if (uri == null) {
 			return;
@@ -417,9 +419,9 @@ public final class Client {
 		final File fdata = new File(fpath, fname);
 		logger.debug("Download uri = " + uri + " fdata = " + fdata);
 		commClient.downloadData(uri, fdata);
-		if (data.getMD5().compareTo(MD5.asHex(MD5.getHash(fdata))) != 0) {
+		if (data.getMD5().compareTo(XWTools.sha256CheckSum(fdata)) != 0) {
 			fdata.delete();
-			throw new IOException(uri.toString() + " MD5 differs");
+			throw new IOException(uri.toString() + " MD5 differs : " + data.getMD5() + " != " + XWTools.sha256CheckSum(fdata));
 		}
 		logger.info("Downloaded to : " + fdata.getAbsolutePath());
 	}
@@ -844,7 +846,8 @@ public final class Client {
 				final XWAccessRights rights = obj.getAccessRights();
 				rights.chmod(modstr);
 				obj.setAccessRights(rights);
-				final XMLRPCCommandSend cmd = new XMLRPCCommandSend(uri, obj);
+//				final XMLRPCCommandSend cmd = new XMLRPCCommandSend(uri, obj);
+				final XMLRPCCommandSend cmd = XMLRPCCommandSend.newCommand(uri, obj);
 				commClient().send(cmd);
 			}
 		}
@@ -958,7 +961,11 @@ public final class Client {
 			switch (jobStatus) {
 			case COMPLETED:
 				if (dataUri != null) {
-					downloadData(dataUri, true);
+					try {
+						downloadData(dataUri, true);
+					} catch (NoSuchAlgorithmException e) {
+						logger.exception(e);
+					}
 				}
 				break;
 			default:
@@ -1190,9 +1197,10 @@ public final class Client {
 	 * @throws URISyntaxException
 	 * @throws AccessControlException
 	 * @throws InvalidKeyException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	private void sendApp() throws IOException, ParseException, InvalidKeyException, AccessControlException,
-	URISyntaxException, InstantiationException, ClassNotFoundException, SAXException {
+	URISyntaxException, InstantiationException, ClassNotFoundException, SAXException, NoSuchAlgorithmException {
 
 		final List appParams = (List) args.commandParams();
 
@@ -1330,7 +1338,7 @@ public final class Client {
 							type = DataTypeEnum.BINARY;
 						}
 						binaryUri = sendData(os, cpu, type, accessRights,
-								new URI("file://" + binaryFile.getCanonicalPath()), binaryFile.getName());
+								new URI("file://" + binaryFile.getAbsolutePath()), binaryFile.getName());
 					} else {
 						logger.debug("no binary found (no URI, no file)");
 					}
@@ -1480,10 +1488,11 @@ public final class Client {
 	 * @throws SAXException
 	 * @throws ClassNotFoundException
 	 * @throws AccessControlException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	private void sendData() throws IOException, ParseException, InvalidKeyException, URISyntaxException,
 	InstantiationException, CertificateExpiredException, CertificateException, AccessControlException,
-	ClassNotFoundException, SAXException {
+	ClassNotFoundException, SAXException, NoSuchAlgorithmException {
 
 		File dataFile = null;
 		String dataName = null;
@@ -1660,10 +1669,11 @@ public final class Client {
 	 * @throws AccessControlException
 	 * @throws InvalidKeyException
 	 * @throws InstantiationException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	public URI sendData(final OSEnum os, final CPUEnum cpu, final DataTypeEnum type, final XWAccessRights accessRights,
 			final URI uri, final String name) throws IOException, URISyntaxException, InvalidKeyException,
-	AccessControlException, ClassNotFoundException, SAXException, InstantiationException {
+	AccessControlException, ClassNotFoundException, SAXException, InstantiationException, NoSuchAlgorithmException {
 
 		logger.debug(
 				"sendData(" + os + ", " + cpu + ", " + type + ", " + accessRights + ", " + uri + ", " + name + ")");
@@ -1701,11 +1711,12 @@ public final class Client {
 	 * @param dataPath
 	 *            is the path to the data content on local fs
 	 * @return the data URI
+	 * @throws NoSuchAlgorithmException 
 	 * @see #sendData(DataInterface, File)
 	 */
 	public URI sendData(final DataInterface data, final String dataPath)
 			throws InvalidKeyException, AccessControlException, IOException, ClassNotFoundException, SAXException,
-			URISyntaxException, InstantiationException {
+			URISyntaxException, InstantiationException, NoSuchAlgorithmException {
 		final File f = new File(dataPath);
 		return sendData(data, f);
 	}
@@ -1728,9 +1739,10 @@ public final class Client {
 	 * @throws AccessControlException
 	 * @throws InvalidKeyException
 	 * @throws InstantiationException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	public URI sendData(final DataInterface data, final File dataFile) throws IOException, InvalidKeyException,
-	AccessControlException, ClassNotFoundException, SAXException, URISyntaxException, InstantiationException {
+	AccessControlException, ClassNotFoundException, SAXException, URISyntaxException, InstantiationException, NoSuchAlgorithmException {
 
 		if (dataFile == null) {
 			data.setStatus(StatusEnum.AVAILABLE);
@@ -1740,7 +1752,7 @@ public final class Client {
 			}
 			data.setStatus(StatusEnum.UNAVAILABLE);
 			data.setSize(dataFile.length());
-			data.setMD5(MD5.asHex(MD5.getHash(dataFile)));
+			data.setMD5(XWTools.sha256CheckSum(dataFile));
 		}
 
 		logger.debug("sendData(" + data.toXml() + ", " + dataFile + ")");
@@ -2603,9 +2615,10 @@ public final class Client {
 	 * @throws AccessControlException
 	 * @throws InvalidKeyException
 	 * @throws InstantiationException
+	 * @throws NoSuchAlgorithmException 
 	 */
 	private void sendWork() throws IOException, ParseException, ClassNotFoundException, SAXException,
-	URISyntaxException, InvalidKeyException, AccessControlException, InstantiationException {
+	URISyntaxException, InvalidKeyException, AccessControlException, InstantiationException, NoSuchAlgorithmException {
 
 		final UID uid = new UID();
 		WorkInterface work = null;
@@ -2750,7 +2763,7 @@ public final class Client {
 					}
 					final File zipFile = new File(zipper.getFileName());
 					URI zipUri = sendData(OSEnum.NONE, CPUEnum.NONE, dirinType, XWAccessRights.DEFAULT,
-							new URI("file://" + zipFile.getCanonicalPath()), zipFile.getName());
+							new URI("file://" + zipFile.getAbsolutePath()), zipFile.getName());
 					work.setDirin(zipUri);
 					if (newZip) {
 						final File file = new File(zipper.getFileName());
@@ -2781,7 +2794,7 @@ public final class Client {
 				}
 				if (stdin != null) {
 					final URI stdinUri = sendData(OSEnum.NONE, CPUEnum.NONE, DataTypeEnum.TEXT, XWAccessRights.DEFAULT,
-							new URI("file://" + stdin.getCanonicalPath()), stdin.getName());
+							new URI("file://" + stdin.getAbsolutePath()), stdin.getName());
 					work.setStdin(stdinUri);
 				}
 			}
@@ -2857,7 +2870,7 @@ public final class Client {
 				}
 				if (certFile != null) {
 					final URI certUri = sendData(OSEnum.NONE, CPUEnum.NONE, DataTypeEnum.X509, XWAccessRights.USERALL,
-							new URI("file://" + certFile.getCanonicalPath()), certFile.getName());
+							new URI("file://" + certFile.getAbsolutePath()), certFile.getName());
 					work.setUserProxy(certUri);
 				}
 			}
@@ -2954,6 +2967,7 @@ public final class Client {
 	private void workRequest() throws IOException {
 
 		try {
+			config.getHost().setAcceptBin(true);
 			final WorkInterface work = commClient().workRequest(config.getHost());
 			println("Work received: " + work.toXml());
 		} catch (final Exception e) {
@@ -3085,9 +3099,9 @@ public final class Client {
 					if (newKeystoreData == null) {
 						throw new IOException("Can't retrieve new keystore data " + keystoreUri);
 					}
-					final String currentKeystoreMD5 = MD5.asHex(MD5.getHash(currentKeystoreFile));
+					final String currentKeystoreSHA = XWTools.sha256CheckSum(currentKeystoreFile);
 
-					if (newKeystoreData.getMD5().compareTo(currentKeystoreMD5) != 0) {
+					if (newKeystoreData.getMD5().compareTo(currentKeystoreSHA) != 0) {
 						println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 						println("*                                                 *");
 						println("*                  ATTENTION                      *");

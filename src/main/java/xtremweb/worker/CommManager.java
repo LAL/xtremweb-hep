@@ -44,6 +44,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
@@ -60,7 +61,6 @@ import xtremweb.common.DataInterface;
 import xtremweb.common.DataTypeEnum;
 import xtremweb.common.HostInterface;
 import xtremweb.common.Logger;
-import xtremweb.common.MD5;
 import xtremweb.common.MileStone;
 import xtremweb.common.OSEnum;
 import xtremweb.common.StatusEnum;
@@ -315,7 +315,7 @@ public final class CommManager extends Thread {
 	InvalidKeyException, AccessControlException, SAXException {
 
 		final URI uri = commClient().newURI(w.getUID());
-		final XMLRPCCommandSend cmd = new XMLRPCCommandSend(uri, w);
+		final XMLRPCCommandSend cmd = XMLRPCCommandSend.newCommand(uri, w);
 		cmd.setHost(Worker.getConfig().getHost());
 		logger.debug("CommManager#workSend " + cmd.toXml());
 		commClient().send(cmd);
@@ -611,7 +611,9 @@ public final class CommManager extends Thread {
 
 		final AppTypeEnum appType = app.getType();
 		final String apptypestr = appType.toString();
-		final boolean localapp = Worker.getConfig().getLocalApps().contains(apptypestr);
+		final boolean localapp = Worker.getConfig().getLocalApps() == null ? 
+				false: 
+					Worker.getConfig().getLocalApps().contains(apptypestr);
 
 		logger.error("CommManager : can't use app library; please use executables");
 		uri = app.getBinary(cpu, os);
@@ -817,7 +819,7 @@ public final class CommManager extends Thread {
 
 			commClient = commClient(uri);
 
-			if (uri.isHttp() || uri.isAttic()) {
+			if (uri.isHttp() || uri.isHttps() || uri.isAttic()) {
 				wget(uri);
 				return;
 			}
@@ -868,7 +870,7 @@ public final class CommManager extends Thread {
 			final long start = System.currentTimeMillis();
 			long fsize = fdata.length();
 
-			if ((fdata.exists()) && (!bypass) && (data.getMD5().compareTo(MD5.asHex(MD5.getHash(fdata))) == 0)
+			if ((fdata.exists()) && (!bypass) && (data.getMD5().compareTo(XWTools.sha256CheckSum(fdata)) == 0)
 					&& (data.getSize() == fsize)) {
 				logger.config("Not necessary to download data " + data.getUID());
 				return;
@@ -898,9 +900,11 @@ public final class CommManager extends Thread {
 			Worker.getConfig().getHost().setDownloadBandwidth(bandwidth);
 			logger.info("Download bandwidth = " + bandwidth);
 
-			if ((data.getMD5().compareTo(MD5.asHex(MD5.getHash(fdata))) != 0) || (data.getSize() != fsize)) {
+			if ((data.getMD5().compareTo(XWTools.sha256CheckSum(fdata)) != 0) || (data.getSize() != fsize)) {
 				throw new IOException(uri.toString() + " MD5 or size differs");
 			}
+		} catch (NoSuchAlgorithmException e) {
+			logger.exception(e);
 		} finally {
 			if (fdata != null) {
 				for (int nbtry = 0; nbtry < 2; nbtry++) {
@@ -924,8 +928,7 @@ public final class CommManager extends Thread {
 	}
 
 	/**
-	 * This does nothing if parameter is null. This retrieves the data from an
-	 * HTTP server
+	 * This retrieves the data from an HTTP server
 	 *
 	 * @param uri
 	 *            is the data uri
@@ -964,7 +967,8 @@ public final class CommManager extends Thread {
 			if (fdata == null) {
 				throw new IOException(uri.toString() + " can't cache data");
 			}
-			data.setName(uri.getPath());
+//			data.setName(uri.getPath());
+			data.setName(uri.getName());
 			commClient.addToCache(data, uri);
 			data = null;
 
@@ -1126,6 +1130,7 @@ public final class CommManager extends Thread {
 					try {
 						downloadApp(newWork.getApplication());
 					} catch (final Exception e) {
+						logger.exception("Download app err : ", e);
 						throw new IOException("can't download app : " + e.getMessage());
 					}
 

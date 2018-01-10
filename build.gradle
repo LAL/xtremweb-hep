@@ -1,0 +1,238 @@
+apply plugin: 'java-library'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    compile "org.bouncycastle:bcprov-jdk15on:1.51"
+    compile "org.bouncycastle:bcpkix-jdk15on:1.51"
+    compile "org.eclipse.jetty:jetty-maven-plugin:9.3.8.v20160314"
+    compile "com.auth0:java-jwt:3.2.0"
+    compile "com.github.scribejava:scribejava-apis:3.3.0"
+    compile "commons-fileupload:commons-fileupload:1.2"
+    compile "commons-httpclient:commons-httpclient:3.0.1"
+    compile "org.expressme:JOpenId:1.08"
+    compile "javax.mail:mail:1.4.7"
+    compile "bouncycastle:bcprov-jdk16:140"
+    compile "antlr:antlr:2.7.2"// ? https://mvnrepository.com/artifact/antlr/antlr
+    compile "org.json:json:20160810" // ? https://mvnrepository.com/artifact/org.json/json
+
+    compile ('org.web3j:core:3.2.0')
+
+    api 'org.apache.commons:commons-math3:3.6.1'
+
+    implementation 'com.google.guava:guava:23.0'
+
+    testImplementation "junit:junit:4.12"
+    testImplementation "org.assertj:assertj-core:3.8.0"
+
+    // external files
+    compile files('libXtremWeb/smartsockets-1.4.jar')
+}
+
+
+import org.apache.tools.ant.filters.ReplaceTokens
+import java.time.Instant
+
+ant.importBuild 'jni.xml'
+processResources.dependsOn jni
+
+task createVersion(type: Copy) {
+    // delete old one
+    delete 'src/main/java/xtremweb/common/CommonVersion.java'
+    // use and copy template to the new location
+    from 'src/main/java/xtremweb/common/CommonVersion.java.in'
+    into 'src/main/java/xtremweb/common'
+
+    // remove the '.in' extension
+    rename { String fileName ->
+        fileName.replace('.in', '')
+    }
+
+    // replace tokens in the template file
+    filter(ReplaceTokens, tokens: [BUILD_TIME: Instant.now().toString(),
+                                   XWVERSION : "${version}".toString(),
+                                   VBRANCH   : 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+    ])
+}
+
+createVersion.dependsOn clean
+
+// the createVersion task should be called before compileJava
+compileJava.dependsOn createVersion
+
+jar {
+    exclude("doc/**")
+}
+
+// task that creates a big jar that includes all dependencies
+// this will probably be removed once we switch to spring boot
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Jar File Example',
+                'Implementation-Version': version,
+                'Main-Class': 'xtremweb.dispatcher.Dispatcher xtremweb.common.HTTPLauncher xtremweb.client.Client'
+    }
+    exclude("doc/**")
+    baseName = project.name + '-all-dependencies'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+build.dependsOn fatJar
+
+
+apply from: 'common.gradle'
+apply from: 'mac.gradle'
+apply from: 'windows.gradle'
+apply from: 'linuxDPKG.gradle'
+
+task copyMiscToDist(type: Copy) {
+    into dist
+
+    into("/doc") {
+        from doc
+        include('*.png')
+        include('xtremweb.html')
+    }
+
+    into("/docker") {
+        from docker
+    }
+
+    into("/resources") {
+        from project.res
+        include('log4j.xml')
+    }
+
+    into("/lib") {
+        from libXtremWeb
+    }
+
+    into("/benchmark/apptest") {
+        from(benchmark + '/apptest')
+    }
+
+    into(".") {
+        from root
+        include('AUTHORS')
+        include('ChangeLog')
+        include('COPYING')
+        include('INSTALL')
+        include('License**')
+        include('Dockerfile')
+    }
+
+    into("/lib") {
+        from(build + '/libs')
+        include('xtremweb-' + version + '.jar')
+        rename('xtremweb-' + version + '.jar', 'xtremweb.jar')
+    }
+
+    into("/conf") {
+        from(project.res + '/conf')
+    }
+}
+
+task mkdirKeystore(type: Exec) {
+    commandLine("sh", "-c",
+            "mkdir -p " + dist + "/keystore"
+    )
+}
+
+task copyScripts(type: Copy) {
+    from(scripts)
+    into(distBin)
+    rename('xwsetversion.sql.in', 'xwsetversion.sql')
+    filter(ReplaceTokens, tokens: getCustomProperties())
+}
+
+task copyKeystoreGenerationScripts(type: Copy) {
+
+    into(dist + "/bin")
+
+    into(".") {
+        from(scripts)
+        include('xwhepgenkeys.template')
+        rename { fileName -> fileName.replace('.template', '') }
+
+        include('xwhepupdateopenidcerts.template')
+        rename { fileName -> fileName.replace('.template', '') }
+
+        filter(ReplaceTokens, tokens: getCustomProperties())
+    }
+
+}
+
+task cleanKeystoreDir(type: Delete) {
+    delete fileTree(dir: dist + "/keystore")
+}
+
+task generateKeys(type: Exec) {
+    dependsOn(copyKeystoreGenerationScripts, cleanKeystoreDir)
+    commandLine("sh", "-c",
+            distBin + '/xwhepgenkeys' + " && " +
+                    "if [ \$? -eq 0 ] ; then echo \"Keystores generated\" ; else echo \"ERROR: keystores generation error\"; exit 1 ; fi" + " && " +
+                    distBin + '/xwhepupdateopenidcerts' + " && " +
+                    "if [ \$? -eq 0 ] ; then echo \"OpenID server certificates inserted in XWHEP server keystore\" ; else echo \"ERROR: can't insert OpenID server certificates into XWHEP server keystore\" ; fi"
+    )
+}
+
+task chmodBin(type: Exec) {
+    dependsOn(copyMiscToDist, copyScripts,copyKeystoreGenerationScripts, mkdirKeystore)
+    commandLine("sh", "-c",
+            "chmod -R 755 " + distBin + " && " +
+                    "find " + distBin + " -iname *.sql* -exec chmod -x {} +" + " && " +
+                    "find " + distBin + " -iname *.seds -exec chmod -x {} +" + " && " +
+                    "find " + distBin + " -iname *.bat -exec chmod -x {} +" + " && " +
+                    "find " + distBin + " -iname *.xmls -exec chmod -x {} +"
+    )
+}
+
+task copySQLCreateTables(type: Copy) {
+    from templates + "/xwhep-core-tables-create-tables.sql.in"
+    into(dist + "/bin/db-maintenance/")
+    rename { fileName -> fileName.replace('.in', '') }
+    filter(ReplaceTokens, tokens: getCustomProperties())
+}
+
+task copyConfFiles(type: Copy) {
+    into dist
+
+    // copy values to use in the conf
+    into("/conf") {
+        from conf + "/xwconfigure.values"
+    }
+
+    // copy server conf
+    into("/conf") {
+        from templates + "/xtremweb.server.conf.in"
+        rename { fileName -> fileName.replace('.in', '') }
+
+        from templates + '/xtremweb.worker.conf.in'
+        rename { fileName -> fileName.replace('.in', '') }
+
+        from templates + '/xtremweb.vworker.conf.in'
+        rename { fileName -> fileName.replace('.in', '') }
+
+        from(templates + '/xtremweb.client.conf.in')
+        rename { fileName -> fileName.replace('.in', '') }
+
+        filter(ReplaceTokens, tokens: getCustomProperties())
+    }
+}
+
+task copyLinuxInstallers(type: Copy) {
+    from linuxInstallers
+    into dist + '/installers/linux'
+    filter(ReplaceTokens, tokens: getCustomProperties())
+}
+
+
+task buildAll {
+    dependsOn(chmodBin, copyWindowsInstaller, copyMacInstaller, copyLinuxInstallers, copySQLCreateTables, copyConfFiles)
+}
+
+buildAll.dependsOn getTasksByName('build', true)

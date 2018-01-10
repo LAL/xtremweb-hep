@@ -27,6 +27,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -71,8 +72,9 @@ public final class HTTPLauncher {
 	 * @param argv
 	 *            a <code>String[]</code> value : command line arguments which
 	 *            specificies the config file name
+	 * @throws IOException 
 	 */
-	private HTTPLauncher(final String[] a) {
+	private HTTPLauncher(final String[] a) throws IOException {
 		final String[] argv = a.clone();
 		CommandLineParser args = null;
 		try {
@@ -105,11 +107,11 @@ public final class HTTPLauncher {
 		final File rootDir = config.getConfigFile().getParentFile().getParentFile();
 		File libDir = new File(rootDir, "lib");
 		if (!libDir.exists()) {
-			libDir = new File(System.getProperty(XWPropertyDefs.TMPDIR.toString()));
+			libDir = config.getTmpDir();
 		}
 		File binDir = new File(rootDir, "bin");
 		if (!binDir.exists()) {
-			binDir = new File(System.getProperty(XWPropertyDefs.TMPDIR.toString()));
+			binDir = config.getTmpDir();
 		}
 
 		while (true) {
@@ -172,27 +174,27 @@ public final class HTTPLauncher {
 			String configPath = null;
 			String xwcp = null;
 			String javacp = System.getProperty("java.class.path");
-			String javaCmd = "java ";
+			final StringBuilder javaCmd = new StringBuilder("java ");
 
 			try {
-				logger.debug("00 libDir = " + libDir.getCanonicalPath());
+				logger.debug("00 libDir = " + libDir.getAbsolutePath());
 				if (config.getProperty(XWPropertyDefs.XWCP) != null) {
 					libDir = new File(config.getProperty(XWPropertyDefs.XWCP));
 					if (libDir.isFile()) {
 						libDir = libDir.getParentFile();
 					}
 				}
-				logger.config("libDir = " + libDir.getCanonicalPath());
+				logger.config("libDir = " + libDir.getAbsolutePath());
 
 				if ((jarFile == null) || !jarFile.exists()) {
 					jarFile = new File(libDir, XWTools.JARFILENAME);
 				}
 
-				logger.config("jarFile = " + jarFile.getCanonicalPath());
+				logger.config("jarFile = " + jarFile.getAbsolutePath());
 				Thread.sleep(SLEEPDELAY);
 
-				tmpPath = config.getProperty(XWPropertyDefs.TMPDIR);
-				jarFilePath = jarFile.getCanonicalPath();
+				tmpPath = config.getTmpDir().getAbsolutePath();
+				jarFilePath = jarFile.getAbsolutePath();
 				keystorePath = config.getProperty(XWPropertyDefs.SSLKEYSTORE);
 				configPath = config.getProperty(XWPropertyDefs.CONFIGFILE);
 				xwcp = config.getProperty(XWPropertyDefs.XWCP);
@@ -222,21 +224,30 @@ public final class HTTPLauncher {
 
 				final String hwmem = System.getProperty(XWPropertyDefs.HWMEM.toString()) == "" ? ""
 						: " -D" + XWPropertyDefs.HWMEM + "=" + System.getProperty(XWPropertyDefs.HWMEM.toString());
-				final String javaOpts = " -Dxtremweb.cache=" + tmpPath + " -Djava.library.path=" + tmpPath + hwmem
-						+ " -Dxtremweb.cp=" + xwcp + " -Djavax.net.ssl.trustStore=" + keystorePath + " -cp "
-						+ jarFilePath + File.pathSeparator + (javacp != null ? javacp : "") + " xtremweb.worker.Worker "
-						+ " --xwconfig " + configPath;
+				final String log4jconf = System.getProperty(XWPropertyDefs.LOG4JCONFIGFILE.propertyName()) == null ?
+						"" : " -D" + XWPropertyDefs.LOG4JCONFIGFILE.propertyName() + "=" + System.getProperty(XWPropertyDefs.LOG4JCONFIGFILE.propertyName());
+				final String loglevel= System.getProperty(XWPropertyDefs.LOGGERLEVEL.propertyName()) == null ?
+						"" : " -D" + XWPropertyDefs.LOGGERLEVEL.propertyName() + "=" + System.getProperty(XWPropertyDefs.LOGGERLEVEL.propertyName());
+
+				final StringBuilder javaOpts = new StringBuilder(" -D" + XWPropertyDefs.CACHEDIR.propertyName() + "=" + tmpPath
+						+ log4jconf + loglevel
+						+ " -D" + XWPropertyDefs.JAVALIBPATH.propertyName() + "=" + tmpPath + hwmem
+						+ " -D" + XWPropertyDefs.XWCP.propertyName() + "=" + xwcp
+						+ " -D" + XWPropertyDefs.JAVAKEYSTORE.propertyName() + "=" + keystorePath
+						+ " -cp " + jarFilePath + File.pathSeparator + (javacp != null ? javacp : "")
+						+ " xtremweb.worker.Worker "
+						+ " --xwconfig " + configPath);
 
 				if (OSEnum.getOs().isWin32()) {
-					javaCmd += " -Xrs ";
+					javaCmd.append(" -Xrs ");
 				}
-
+				
 				final String serveurOpt = " -server ";
-				final String cmd = javaCmd + serveurOpt + javaOpts;
+				final String cmd = javaCmd.toString() + serveurOpt + javaOpts.toString();
 
 				logger.config("Executing " + cmd);
 				final FileInputStream in = null;
-				exec = new Executor(cmd, binDir.getCanonicalPath(), in, System.out, System.err,
+				exec = new Executor(cmd, binDir.getAbsolutePath(), in, System.out, System.err,
 						Long.parseLong(config.getProperty(XWPropertyDefs.TIMEOUT)));
 				int rc = exec.startAndWait();
 				XWReturnCode returnCode = XWReturnCode.fromInt(rc);
@@ -248,10 +259,10 @@ public final class HTTPLauncher {
 
 				if (returnCode != XWReturnCode.SUCCESS) {
 
-					final String cmd1 = javaCmd + javaOpts;
+					final String cmd1 = javaCmd.toString() + javaOpts.toString();
 
 					logger.config("Trying to launch the worker without \"" + serveurOpt + "\" java option : " + cmd1);
-					exec = new Executor(cmd1, binDir.getCanonicalPath(), in, System.out, System.err,
+					exec = new Executor(cmd1, binDir.getAbsolutePath(), in, System.out, System.err,
 							Long.parseLong(config.getProperty(XWPropertyDefs.TIMEOUT)));
 					rc = exec.startAndWait();
 					returnCode = XWReturnCode.fromInt(rc);
@@ -289,6 +300,11 @@ public final class HTTPLauncher {
 	}
 
 	public static void main(final String[] argv) {
-		new HTTPLauncher(argv);
+		try {
+			new HTTPLauncher(argv);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
