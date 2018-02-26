@@ -46,7 +46,12 @@ RUN echo "keytool -import -alias localhost -file /xwhep/certificate/xwscheduler.
 RUN echo "sed -i \"s/^SSLKEYSTORE=.*/SSLKEYSTORE=\/etc\/ssl\/certs\/java\/cacerts/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
     echo "sed -i \"s/^SSLKEYPASSWORD=.*/SSLKEYPASSWORD=changeit/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh
 
-# ADD defined SHAREDAPPS variable if defined, otherwise use a default value  
+# add the TMPDIR variable if defined
+RUN echo "if [ ! -z \$TMPDIR ] ; then " >> /xwhep/xwstart.sh && \
+    echo "	sed -i \"s/^#TMPDIR=.*/TMPDIR=\$TMPDIR/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh && \
+	echo "fi" >> /xwhep/xwstart.sh
+
+# Add defined SHAREDAPPS variable if defined, otherwise use a default value  
 RUN echo "if [ ! -z \$SHAREDAPPS ] ; then " >> /xwhep/xwstart.sh && \
     echo "	sed -i \"s/^#SHAREDAPPS=.*/SHAREDAPPS=\$SHAREDAPPS/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh && \
 	echo "else sed -i \"s/^#SHAREDAPPS=.*/SHAREDAPPS=docker/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh && \
@@ -57,12 +62,20 @@ RUN echo "if [ ! -z \$SHAREDPACKAGES ] ; then " >> /xwhep/xwstart.sh && \
     echo "	sed -i \"s/^#SHAREDPACKAGES=.*/SHAREDPACKAGES=\$SHAREDPACKAGES/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh && \
 	echo "fi" >> /xwhep/xwstart.sh
 
-# choose the login/password to run worker or vworker:
+# Set default value for Login
 RUN echo "if [ ! -z \$LOGIN ] ; then " >> /xwhep/xwstart.sh  && \
-    echo "	sed -i \"s/^PASSWORD=.*/PASSWORD=\$PASSWORD/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
     echo "	sed -i \"s/^LOGIN=.*/LOGIN=\$LOGIN/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
-    echo "fi" >> /xwhep/xwstart.sh && \
-	echo "if [ ! -z \$LOGGERLEVEL ] ; then " >> /xwhep/xwstart.sh  && \
+    echo "else sed -i \"s/^LOGIN=.*/LOGIN=vworker/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
+    echo "fi" >> /xwhep/xwstart.sh
+
+# Set default value for Password
+RUN echo "if [ ! -z \$PASSWORD ] ; then " >> /xwhep/xwstart.sh  && \
+    echo "	sed -i \"s/^PASSWORD=.*/PASSWORD=\$PASSWORD/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
+    echo "else sed -i \"s/^PASSWORD=.*/PASSWORD=vworkerp/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
+	echo "fi" >> /xwhep/xwstart.sh
+
+# Set the LoggerLevel
+RUN	echo "if [ ! -z \$LOGGERLEVEL ] ; then " >> /xwhep/xwstart.sh  && \
     echo "	sed -i \"s/^LOGGERLEVEL=.*/LOGGERLEVEL=\$LOGGERLEVEL/g\" /xwhep/conf/xtremweb.worker.conf " >> /xwhep/xwstart.sh  && \
     echo "fi" >> /xwhep/xwstart.sh && \
     echo "cat /etc/hosts" >> /xwhep/xwstart.sh  && \
