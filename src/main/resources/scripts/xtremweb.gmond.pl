@@ -1,24 +1,23 @@
 #!/usr/bin/perl
 
-# Copyrights     : CNRS
-# Author         : Oleg Lodygensky
 # Acknowledgment : XtremWeb-HEP is based on XtremWeb 1.8.0 by inria : http://www.xtremweb.net/
 # Web            : http://www.xtremweb-hep.org
-# 
+#
 #      This file is part of XtremWeb-HEP.
 #
-#    XtremWeb-HEP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+# Copyright [2018] [CNRS] Oleg Lodygensky
 #
-#    XtremWeb-HEP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#    You should have received a copy of the GNU General Public License
-#    along with XtremWeb-HEP.  If not, see <http://www.gnu.org/licenses/>.
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 #
 
@@ -27,9 +26,9 @@
 #  Installation under ubuntu16: sudo apt-get install libdbi-perl libclass-dbi-mysql-perl
 #
 # Depending on mysql version, you may have the following error
-# Couldn't execute statement: Expression #1 of SELECT list is not in GROUP BY clause 
+# Couldn't execute statement: Expression #1 of SELECT list is not in GROUP BY clause
 # and contains nonaggregated column 'xtremweb.hosts.uid' which is not functionally
-# dependent on columns in GROUP BY clause; 
+# dependent on columns in GROUP BY clause;
 # this is incompatible with sql_mode=only_full_group_by
 #
 # The next command solves this issue (to be run in mysql):
@@ -73,7 +72,7 @@ autoflush STDOUT 1;
 #
 # default values
 #
-my $DBUSER = "@XWUSER@";
+my $DBUSER = "@DBADMINLOGIN@";
 my $dbpassword = "@DBADMINPASSWORD@";
 my $DBHOST = "@DBHOST@";
 my $database = "@DBNAME@";
@@ -291,6 +290,13 @@ while(1) {
 	    $dbHandler = DBI->connect("DBI:mysql:$database:$DBHOST", $DBUSER, $dbpassword)
 		or die "Couldn't connect to database: " . DBI->errstr;
 
+    # This query is mandatory to support the next query performed in the script (see explanation at the beginning of the file)
+      my $setUpDb = $dbHandler->prepare("SET GLOBAL sql_mode=?")
+    or die "Couldn't prepare statement: " . $dbHandler->errstr;
+      $setUpDb->execute("STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION")
+    or die "Couldn't execute statement: " . $setUpDb->errstr;
+
+      $dbHandler->disconnect;
 #
 # SELECT statement
 # This retreives max(lastalive) group by name, ipaddr
@@ -302,6 +308,8 @@ while(1) {
 	    #&debug("ReqMaxAlive");
 #	    my $reqWorker = $dbHandler->prepare("select uid, os as osrelease, cpunb, cpuspeed, cputype as machinetype, totalswap as swaptotal, totalmem as memtotal,name, ipaddr, unix_timestamp(now())-unix_timestamp(lastalive) as delai,active,available,pilotjob,nbjobs from hosts where isdeleted='false' and (unix_timestamp(now())-unix_timestamp(lastalive) < 1000)")
 
+      $dbHandler = DBI->connect("DBI:mysql:$database:$DBHOST", $DBUSER, $dbpassword)
+    or die "Couldn't connect to database: " . DBI->errstr;
 
 #	    my $reqWorker = $dbHandler->prepare("select uid, os as osrelease, cpunb, cpuspeed, cputype as machinetype, totalswap as swaptotal, totalmem as memtotal,name, totaltmp,freetmp,ipaddr, unix_timestamp(now())-unix_timestamp(lastalive) as delai,active,available,pilotjob,nbjobs,pendingjobs,runningjobs,errorjobs from hosts where isdeleted='false' and (unix_timestamp(now())-unix_timestamp(lastalive) < 1000)")
 #		or die "Couldn't prepare statement: " . $dbHandler->errstr;

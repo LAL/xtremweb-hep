@@ -23,14 +23,7 @@
 
 package xtremweb.worker;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.URISyntaxException;
@@ -38,7 +31,6 @@ import java.net.UnknownHostException;
 import java.security.AccessControlException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
@@ -50,25 +42,13 @@ import javax.net.SocketFactory;
 
 import org.xml.sax.SAXException;
 
-import xtremweb.common.AppInterface;
-import xtremweb.common.AppTypeEnum;
-import xtremweb.common.CPUEnum;
-import xtremweb.common.DataInterface;
-import xtremweb.common.DataTypeEnum;
-import xtremweb.common.Logger;
-import xtremweb.common.MileStone;
-import xtremweb.common.OSEnum;
-import xtremweb.common.StatusEnum;
-import xtremweb.common.StreamIO;
-import xtremweb.common.UID;
-import xtremweb.common.XWPropertyDefs;
-import xtremweb.common.XWTools;
-import xtremweb.common.Zipper;
+import xtremweb.common.*;
 import xtremweb.communications.Connection;
 import xtremweb.communications.SmartSocketsProxy;
 import xtremweb.communications.URI;
 import xtremweb.exec.Executor;
 import xtremweb.exec.ExecutorLaunchException;
+import xtremweb.exec.ExecutorWallClockTimeException;
 
 /**
  * ThreadWork.java Launch a java Work
@@ -322,22 +302,25 @@ public class ThreadWork extends Thread {
 
 					final String jobuid = currentWork.getUID().toString();
 					addEnvVar(XWJOBUIDNAME, jobuid);
-					addEnvVar(XWCPULOADNAME, "" + Worker.getConfig().getHost().getCpuLoad());
-					if (currentWork.getDiskSpace() > 0) {
-						addEnvVar(XWDISKSPACENAME, "" + currentWork.getDiskSpace());
+					if (currentWork.getMaxFreeMassStorage() > 0) {
+						addEnvVar(XWDISKSPACENAME, "" + currentWork.getMaxFreeMassStorage());
 					}
-					if (currentWork.getMinMemory() > 0) {
-						addEnvVar(XWRAMSIZENAME, "" + currentWork.getMinMemory());
+					if (currentWork.getMaxMemory() > 0) {
+						addEnvVar(XWRAMSIZENAME, "" + currentWork.getMaxMemory());
+					}
+					if (currentWork.getMaxCpuSpeed() > 0) {
+						addEnvVar(XWCPULOADNAME, "" + currentWork.getMaxCpuSpeed());
 					}
 					status = executeJob();
 				} catch (final Throwable e) {
 					killed = true;
 					logger.exception("job launch error", e);
 					status = StatusEnum.ERROR;
-					currentWork.clean();
 					currentWork.setErrorMsg(e.getMessage());
 					mileStone.println("<executeerror>" + e + "</executeerror>");
-				}
+				} finally {
+                    currentWork.clean();
+                }
 				mileStone.println("</executejob>");
 
 				currentWork.setStatus(status);
@@ -591,6 +574,7 @@ public class ThreadWork extends Thread {
 	private void unload()
 			throws IOException, ClassNotFoundException, SAXException, URISyntaxException, InvalidKeyException {
 
+        logger.config("unload");
 		stopProxy();
 
 		final String unloadpath = getUnloadScriptPath();
@@ -602,16 +586,14 @@ public class ThreadWork extends Thread {
 
 		logger.config("unload");
 
-		final File scratchDir = currentWork.getScratchDir();
-		try (final FileOutputStream out = new FileOutputStream(new File(scratchDir, "unloadout.txt"));
-				final FileOutputStream err = new FileOutputStream(new File(scratchDir, "unloaderr.txt"))) {
+        try {
 
 			final String[] envVars = getEnvVars();
-			final Executor unloader = new Executor(command.toString(), envVars, currentWork.getScratchDirName(), null,
-					out, err, Long.parseLong(Worker.getConfig().getProperty(XWPropertyDefs.TIMEOUT)));
+			final Executor unloader = new Executor(command.toString(), envVars);
+			unloader.setDelay(Long.parseLong(Worker.getConfig().getProperty(XWPropertyDefs.TIMEOUT)));
 			try {
 				unloader.startAndWait();
-			} catch (final ExecutorLaunchException | InterruptedException e) {
+			} catch (final ExecutorLaunchException | ExecutorWallClockTimeException e) {
 				logger.exception(e);
 			}
 
@@ -671,7 +653,12 @@ public class ThreadWork extends Thread {
 	 *
 	 * @see #resumeProcess()
 	 */
-	private StatusEnum executeJob() throws Exception {
+	private StatusEnum executeJob() throws
+            ClassNotFoundException,
+            SAXException,
+            URISyntaxException,
+            InvalidKeyException,
+            IOException {
 
 		StatusEnum ret;
 
@@ -712,30 +699,23 @@ public class ThreadWork extends Thread {
 
 		final UID workUID = currentWork.getUID();
 
+        ret = currentWork.getStatus();
+
 		if (!killed) {
 			try {
 				if (currentWork.isService() == false) {
 					if (currentWork.hasPackage() == false) {
 						zipResult();
-					} else {
+    					} else {
 						currentWork.setResult(null);
 					}
 				}
-				ret = StatusEnum.COMPLETED;
 			} catch (final IOException e) {
 				ret = StatusEnum.ERROR;
-				currentWork.clean();
-				currentWork.setErrorMsg("Worker result error : " + e);
+                currentWork.setError("Worker result error : " + e);
 				logger.exception("Result error(" + workUID + ")", e);
 			}
-		} else {
-			ret = StatusEnum.ABORTED;
-			currentWork.clean();
-			currentWork.setErrorMsg(
-					"Aborted" + (currentWork.getErrorMsg() == null ? "" : " : " + currentWork.getErrorMsg()));
-		}
-
-		currentWork.clean(false);
+        }
 
 		return ret;
 	}
@@ -1014,7 +994,6 @@ public class ThreadWork extends Thread {
 	 * @see xtremweb.common.AppTypeEnum#checkParams(String)
 	 * @since 12.2.8
 	 */
-/*
 	private void checkAppParams(final String params)
 			throws AccessControlException,
 			IOException,
@@ -1037,7 +1016,7 @@ public class ThreadWork extends Thread {
 
 		app.checkParams(params);
 	}
-*/
+
 	/**
 	 * This retrieves the current work command line
 	 *
@@ -1056,7 +1035,7 @@ public class ThreadWork extends Thread {
 		final String wcmdline = currentWork.getCmdLine();
 
 		if (wcmdline != null) {
-//			checkAppParams(wcmdline);
+			checkAppParams(wcmdline);
 			final Collection<String> wcmdvector = XWTools.split(wcmdline);
 			if (ret == null) {
 				ret = wcmdvector;
@@ -1164,7 +1143,7 @@ public class ThreadWork extends Thread {
 				final StreamIO io = new StreamIO(output, null, 10240, Worker.getConfig().nio())) {
 
 			logger.debug("installFile = " + fData + " is not a zip file; just copy it to PWD : " + fout);
-			io.writeFileContent(fData);
+			io.writeFileContent(fData, currentWork.getMaxFileSize());
 			return fout;
 		} finally {
 			CommManager.getInstance().commClient().unlock(uri);
@@ -1373,7 +1352,7 @@ public class ThreadWork extends Thread {
 			}
 			if (resultFile.exists()) {
 				try {
-					data.setMD5(XWTools.sha256CheckSum(resultFile));
+					data.setShasum(XWTools.sha256CheckSum(resultFile));
 				} catch (NoSuchAlgorithmException e) {
 					logger.exception(e);
 				}
@@ -1406,7 +1385,7 @@ public class ThreadWork extends Thread {
 	 * @throws ExecutorLaunchException
 	 */
 	protected void executeNativeJob(final Collection<String> cmdLine) throws IOException, InvalidKeyException,
-	ClassNotFoundException, SAXException, URISyntaxException, ExecutorLaunchException, InterruptedException {
+	ClassNotFoundException, SAXException, URISyntaxException {
 
 		final UID workUID = currentWork.getUID();
 
@@ -1416,7 +1395,7 @@ public class ThreadWork extends Thread {
 		logger.debug("Execute Native Job " + workUID);
 		final StringBuilder command = new StringBuilder();
 		final StringBuilder commArgs = new StringBuilder();
-		for (final Iterator<String> iter = cmdLine.iterator(); iter.hasNext();) {
+		for (final Iterator<String> iter = cmdLine.iterator(); iter.hasNext(); ) {
 			final String elem = iter.next();
 			commArgs.append(elem + " ");
 			command.append(elem + " ");
@@ -1439,25 +1418,30 @@ public class ThreadWork extends Thread {
 				+ (stdin == null ? "null" : stdin.getAbsolutePath()));
 
 		try (final FileInputStream in = (stdin != null ? new FileInputStream(stdin) : null);
-				final FileOutputStream out = new FileOutputStream(new File(scratchDir, XWTools.STDOUT));
-				final FileOutputStream err = new FileOutputStream(new File(scratchDir, XWTools.STDERR))) {
+			 final FileOutputStream out = new FileOutputStream(new File(scratchDir, XWTools.STDOUT));
+			 final FileOutputStream err = new FileOutputStream(new File(scratchDir, XWTools.STDERR))) {
 
 			final String[] envvarsArray = getEnvVars();
 			exec = new Executor(command.toString(), envvarsArray, currentWork.getScratchDirName(), in, out, err,
 					Long.parseLong(Worker.getConfig().getProperty(XWPropertyDefs.TIMEOUT)));
 			exec.setMaxWallClockTime(currentWork.getMaxWallClockTime());
+			logger.debug("" + workUID + " max wallclocktime " + exec.getMaxWallClockTime());
 			exec.setLoggerLevel(logger.getLoggerLevel());
 
-			if ((Boolean.getBoolean(Worker.getConfig().getProperty(XWPropertyDefs.JAVARUNTIME))) && (stdin == null)) {
-				mileStone.println("executing (Runtime)", workUID);
-				final Runtime machine = Runtime.getRuntime();
-				final Process process = machine.exec(command.toString(), null, scratchDir);
-				process.waitFor();
-				processReturnCode = process.exitValue();
-			} else {
-				mileStone.println("executing (Executor)", workUID);
-				processReturnCode = exec.startAndWait();
-			}
+			mileStone.println("executing (Executor)", workUID);
+			processReturnCode = exec.startAndWait();
+            currentWork.setCompleted();
+
+		} catch (final ExecutorLaunchException e) {
+			currentWork.setError(e.getMessage());
+			logger.exception(e);
+			killed = true;
+			processReturnCode = XWReturnCode.WALLCLOCKTIME.ordinal();
+		} catch (final ExecutorWallClockTimeException wcte) {
+			currentWork.setFailed("wall clock time reached");
+			logger.exception(wcte);
+			killed = true;
+			processReturnCode = XWReturnCode.WALLCLOCKTIME.ordinal();
 		} finally {
 			exec = null;
 		}
@@ -1466,12 +1450,17 @@ public class ThreadWork extends Thread {
 
 		logger.debug(workUID + " process exited with code " + processReturnCode);
 
-		if (processReturnCode == 129) {
+		if (processReturnCode == XWReturnCode.ABORT.getOrdinal()) {
 			killed = true;
+            currentWork.setAborted();
+            currentWork.setErrorMsg(
+                    "Aborted" + (currentWork.getErrorMsg() == null ? "" : " : " + currentWork.getErrorMsg()));
 		}
-		if (!killed) {
-			currentWork.setReturnCode(processReturnCode);
-		}
+
+        currentWork.setReturnCode(processReturnCode);
+//        if(killed){
+//            currentWork.clean();
+//        }
 
 		logger.debug("end of executeNativeJob() " + workUID);
 	}
